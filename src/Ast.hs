@@ -36,4 +36,8 @@ data Expr =
 
     deriving (Show, Eq)
 
-data Operator = Add | Sub | Mul | Div deriving (Show, Eq)
+data Operator =
+    Add | Sub | Mul | Div
+    | BoolEq | Ne | Gt | Lt | Gte | Lte
+    | And | Or
+    deriving (Show, Eq)

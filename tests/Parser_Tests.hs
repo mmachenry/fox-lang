@@ -35,6 +35,18 @@ main = runTestTT $ TestList [
 
     "Arithmetic expression: 1 * (2 + 3) " ~:
         readExpr "1 * (2 + 3)" ~?=
-        ExprBinop Mul (ExprNum 1) (ExprBinop Add (ExprNum 2) (ExprNum 3))
+        ExprBinop Mul (ExprNum 1) (ExprBinop Add (ExprNum 2) (ExprNum 3)),
+
+    "Boolean expression: 3 < 4 && 5 >= 4 || 1 != 0" ~:
+        readExpr "3 < 4 && 5 >= 4 || 1 != 0" ~?=
+        ExprBinop Or (ExprBinop And (ExprBinop Lt (ExprNum 3) (ExprNum 4))
+                                    (ExprBinop Gte (ExprNum 5) (ExprNum 4)))
+                     (ExprBinop Ne (ExprNum 1) (ExprNum 0)),
+
+    "Boolean expression: 1 != 0 || 3 < 4 && 5 >= 4" ~:
+        readExpr "1 != 0 || 3 < 4 && 5 >= 4" ~?=
+        ExprBinop Or (ExprBinop Ne (ExprNum 1) (ExprNum 0))
+                     (ExprBinop And (ExprBinop Lt (ExprNum 3) (ExprNum 4))
+                                    (ExprBinop Gte (ExprNum 5) (ExprNum 4)))
     ]
 

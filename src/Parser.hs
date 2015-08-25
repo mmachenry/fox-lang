@@ -18,9 +18,18 @@ readExpr str = case parse expr "fox" str of
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser style
     where style = emptyDef {
-              Token.reservedOpNames = ["+","-","*","/","=","<-"],
+              Token.reservedOpNames = concatMap (fmap fst) operators,
               Token.reservedNames = ["if", "then", "else"],
               Token.commentLine = "#" }
+
+operators = [
+    [("*",Mul), ("/", Div)],
+    [("+", Add), ("-", Sub)],
+    [(">",Gt), ("<", Lt), (">=", Gte), ("<=", Lte)],
+    [("==", BoolEq), ("!=", Ne)],
+    [("&&", And)],
+    [("||", Or)]
+    ]
 
 natural :: Parser Integer
 natural = Token.natural lexer
@@ -56,14 +65,9 @@ ifThenElse = do
 
 formula :: Parser Expr
 formula = buildExpressionParser table juxta <?> "formula"
-    where table = [
-                [mulOp,divOp]
-              , [addOp,subOp]
-              ]
-          addOp = Infix (reservedOp "+" >> return (ExprBinop Add)) AssocLeft
-          subOp = Infix (reservedOp "-" >> return (ExprBinop Sub)) AssocLeft
-          mulOp = Infix (reservedOp "*" >> return (ExprBinop Mul)) AssocLeft
-          divOp = Infix (reservedOp "/" >> return (ExprBinop Div)) AssocLeft
+    where table = fmap (fmap infl) operators
+          infl (lex, abs) = Infix (reservedOp lex >> return (ExprBinop abs))
+                                  AssocLeft
 
 juxta :: Parser Expr
 juxta = do
