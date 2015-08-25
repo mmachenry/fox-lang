@@ -23,6 +23,18 @@ main = runTestTT $ TestList [
     "An effect binding with a resulting expression" ~:
         readExpr "{ a <- f(x); g(a) }" ~?=
         ExprEffectBind "a" (ExprApp (ExprVar "f") [ExprVar "x"])
-                           (ExprApp (ExprVar "g") [ExprVar "a"])
+                           (ExprApp (ExprVar "g") [ExprVar "a"]),
+
+    "Arithmetic expression: 1 + 2 * 3" ~:
+        readExpr "1 + 2 * 3" ~?=
+        ExprBinop Add (ExprNum 1) (ExprBinop Mul (ExprNum 2) (ExprNum 3)),
+
+    "Arithmetic expression: 1 * 2 + 3" ~:
+        readExpr "1 * 2 + 3" ~?=
+        ExprBinop Add (ExprBinop Mul (ExprNum 1) (ExprNum 2)) (ExprNum 3),
+
+    "Arithmetic expression: 1 * (2 + 3) " ~:
+        readExpr "1 * (2 + 3)" ~?=
+        ExprBinop Mul (ExprNum 1) (ExprBinop Add (ExprNum 2) (ExprNum 3))
     ]
 
