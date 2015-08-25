@@ -1,5 +1,6 @@
-This is an implementation of the Fox language from the 2010 Microsoft Reasearch
-paper A Flexible Semantic Framework for Effects by Tate and Leijen
+This is an implementation of the F<sup>ox</sup> language from the 2010
+Microsoft Reasearch paper A Flexible Semantic Framework for Effects by Tate and
+Leijen
 
 The paper is locate here:
 
