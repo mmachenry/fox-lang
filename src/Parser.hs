@@ -54,6 +54,11 @@ reservedOp = Token.reservedOp lexer
 identifier :: Parser String
 identifier = Token.identifier lexer
 
+commaSep :: Parser a -> Parser [a]
+commaSep = Token.commaSep lexer
+
+braces = Token.braces lexer
+
 --------------------------------------------------------------------------------
 -- Parser
 --------------------------------------------------------------------------------
@@ -71,11 +76,10 @@ ifThenElse = ExprIfThenElse
     <*> (reserved "else" *> expr)
 
 squiggleExpr :: Parser Expr
-squiggleExpr = Token.braces lexer mySemiSep
+squiggleExpr = braces mySemiSep
+
 --squiggleExpr = Token.braces lexer (semiFold (Token.semiSep1 statement <?> "empty do block not aloud"))
-
 --semiFold = undefined
-
 --statement :: Parser (Expr -> Expr)
 --statement = letBind <|> effectBind <|> compoundExpr
 
@@ -93,9 +97,13 @@ effectBind = do
     v <- expr
     Token.semi lexer
     b <- expr
-    return $ ExprEffectBind i v b }
+    return $ ExprEffectBind i v b
 
-compoundExpr = do { e1 <- expr; Token.semi lexer; e2 <- expr; return $ ExprCompound e1 e2 }
+compoundExpr = do
+    e1 <- expr
+    Token.semi lexer
+    e2 <- expr
+    return $ ExprCompound e1 e2
 
 mySemiSep :: Parser Expr
 mySemiSep = do
@@ -126,5 +134,5 @@ number :: Parser Expr
 number = (ExprNum . fromIntegral) `fmap` natural
 
 arguments :: Parser [Expr]
-arguments = parens $ sepBy expr (char ',')
+arguments = parens $ commaSep expr
 
