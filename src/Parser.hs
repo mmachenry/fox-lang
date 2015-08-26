@@ -61,28 +61,48 @@ identifier = Token.identifier lexer
 expr :: Parser Expr
 expr =
         ifThenElse
-    <|> binding "=" ExprLetBind
-    <|> binding "<-" ExprEffectBind
+    <|> squiggleExpr
     <|> formula
 
 ifThenElse :: Parser Expr
-ifThenElse = do
-    reserved "if"
-    a <- expr
-    reserved "then"
-    b <- expr
-    reserved "else"
-    c <- expr
-    return $ ExprIfThenElse a b c
+ifThenElse = ExprIfThenElse
+    <$> (reserved "if" *> expr)
+    <*> (reserved "then" *> expr)
+    <*> (reserved "else" *> expr)
 
-binding :: String -> (String -> Expr -> Expr -> Expr) -> Parser Expr
-binding sym cons = try $ do
-    id <- identifier
-    reservedOp sym 
-    val <- expr
+squiggleExpr :: Parser Expr
+squiggleExpr = Token.braces lexer mySemiSep
+--squiggleExpr = Token.braces lexer (semiFold (Token.semiSep1 statement <?> "empty do block not aloud"))
+
+--semiFold = undefined
+
+--statement :: Parser (Expr -> Expr)
+--statement = letBind <|> effectBind <|> compoundExpr
+
+letBind = do
+    i <- identifier
+    reservedOp "="
+    v <- expr;
+    Token.semi lexer;
+    b <- expr;
+    return $ ExprLetBind i v b
+
+effectBind = do
+    i <- identifier
+    reservedOp "<-"
+    v <- expr
     Token.semi lexer
-    e <- expr
-    return $ cons id val e
+    b <- expr
+    return $ ExprEffectBind i v b }
+
+compoundExpr = do { e1 <- expr; Token.semi lexer; e2 <- expr; return $ ExprCompound e1 e2 }
+
+mySemiSep :: Parser Expr
+mySemiSep = do
+        try letBind
+    <|> try effectBind
+    <|> try compoundExpr
+    <|> expr
 
 formula :: Parser Expr
 formula = buildExpressionParser table juxta <?> "formula"
@@ -97,8 +117,7 @@ juxta = do
     return $ foldl ExprApp a args
 
 atom :: Parser Expr
-atom = variable <|> number <|> parens expr <|> squiggleExpr <?> "atom"
-    where squiggleExpr = Token.braces lexer expr
+atom = variable <|> number <|> parens expr <?> "atom"
 
 variable :: Parser Expr
 variable = ExprVar `fmap` identifier

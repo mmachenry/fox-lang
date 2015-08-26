@@ -47,6 +47,9 @@ main = runTestTT $ TestList [
         readExpr "1 != 0 || 3 < 4 && 5 >= 4" ~?=
         ExprBinop Or (ExprBinop Ne (ExprNum 1) (ExprNum 0))
                      (ExprBinop And (ExprBinop Lt (ExprNum 3) (ExprNum 4))
-                                    (ExprBinop Gte (ExprNum 5) (ExprNum 4)))
+                                    (ExprBinop Gte (ExprNum 5) (ExprNum 4))),
+
+    "Let at the end of a block" ~:
+        readExpr "{ x = 5 }" ~?= ExprNil
     ]
 
