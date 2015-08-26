@@ -17,11 +17,11 @@ main = runTestTT $ TestList [
         ExprIfThenElse (ExprVar "a") (ExprVar "b") (ExprVar "c"),
 
     "A let binding with a resulting expression" ~:
-        readExpr "{ a = 2; a }" ~?=
+        readExpr "{a = 2; a }" ~?=
         ExprLetBind "a" (ExprNum 2) (ExprVar "a"),
 
     "An effect binding with a resulting expression" ~:
-        readExpr "{ a <- f(x); g(a) }" ~?=
+        readExpr "{a<-f(x);g(a)}" ~?=
         ExprEffectBind "a" (ExprApp (ExprVar "f") [ExprVar "x"])
                            (ExprApp (ExprVar "g") [ExprVar "a"]),
 

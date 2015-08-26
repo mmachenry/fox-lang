@@ -6,8 +6,15 @@ import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
 
+allOf :: Parser a -> Parser a
+allOf p = do
+  Token.whiteSpace lexer
+  r <- p
+  eof
+  return r
+
 readExpr :: String -> Expr
-readExpr str = case parse expr "fox" str of
+readExpr str = case parse (allOf expr) "fox" str of
     Left err -> error (show err)
     Right val -> val
 
@@ -18,7 +25,8 @@ readExpr str = case parse expr "fox" str of
 lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser style
     where style = emptyDef {
-              Token.reservedOpNames = concatMap (fmap fst) operators,
+              Token.reservedOpNames =
+                  ["=","<-"] ++ concatMap (fmap fst) operators,
               Token.reservedNames = ["if", "then", "else"],
               Token.commentLine = "#" }
 
@@ -51,7 +59,11 @@ identifier = Token.identifier lexer
 --------------------------------------------------------------------------------
 
 expr :: Parser Expr
-expr = ifThenElse <|> formula
+expr =
+        ifThenElse
+    <|> binding "=" ExprLetBind
+    <|> binding "<-" ExprEffectBind
+    <|> formula
 
 ifThenElse :: Parser Expr
 ifThenElse = do
@@ -62,6 +74,15 @@ ifThenElse = do
     reserved "else"
     c <- expr
     return $ ExprIfThenElse a b c
+
+binding :: String -> (String -> Expr -> Expr -> Expr) -> Parser Expr
+binding sym cons = try $ do
+    id <- identifier
+    reservedOp sym 
+    val <- expr
+    Token.semi lexer
+    e <- expr
+    return $ cons id val e
 
 formula :: Parser Expr
 formula = buildExpressionParser table juxta <?> "formula"
@@ -76,7 +97,8 @@ juxta = do
     return $ foldl ExprApp a args
 
 atom :: Parser Expr
-atom = variable <|> number <|> parens expr <?> "atom"
+atom = variable <|> number <|> parens expr <|> squiggleExpr <?> "atom"
+    where squiggleExpr = Token.braces lexer expr
 
 variable :: Parser Expr
 variable = ExprVar `fmap` identifier
@@ -85,5 +107,5 @@ number :: Parser Expr
 number = (ExprNum . fromIntegral) `fmap` natural
 
 arguments :: Parser [Expr]
-arguments = char '(' *> sepBy expr (char ',') <* char ')'
+arguments = parens $ sepBy expr (char ',')
 
