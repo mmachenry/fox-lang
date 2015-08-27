@@ -8,10 +8,10 @@ import qualified Text.Parsec.Token as Token
 
 allOf :: Parser a -> Parser a
 allOf p = do
-  Token.whiteSpace lexer
-  r <- p
-  eof
-  return r
+    Token.whiteSpace lexer
+    r <- p
+    eof
+    return r
 
 readExpr :: String -> Expr
 readExpr str = case parse (allOf expr) "fox" str of
@@ -57,16 +57,22 @@ identifier = Token.identifier lexer
 commaSep :: Parser a -> Parser [a]
 commaSep = Token.commaSep lexer
 
+semiSep :: Parser a -> Parser [a]
+semiSep = Token.semiSep lexer
+
+braces :: Parser a -> Parser a
 braces = Token.braces lexer
 
 --------------------------------------------------------------------------------
 -- Parser
 --------------------------------------------------------------------------------
 
+data Statement = SLet String Expr | SEffect String Expr | SExpr Expr
+
 expr :: Parser Expr
 expr =
         ifThenElse
-    <|> squiggleExpr
+    <|> statementBlock
     <|> formula
 
 ifThenElse :: Parser Expr
@@ -75,42 +81,21 @@ ifThenElse = ExprIfThenElse
     <*> (reserved "then" *> expr)
     <*> (reserved "else" *> expr)
 
-squiggleExpr :: Parser Expr
-squiggleExpr = braces mySemiSep
+statementBlock :: Parser Expr
+statementBlock = foldStatement <$> braces (semiSep statement)
+    where foldStatement :: [Statement] -> Expr
+          foldStatement [] = error "empty statement block"
+          foldStatement ((SLet i v):es) = ExprLetBind i v (foldStatement es)
+          foldStatement ((SEffect i v):es) =
+              ExprEffectBind i v (foldStatement es)
+          foldStatement [(SExpr e)] = e
+          foldStatement ((SExpr e):es) = ExprCompound e (foldStatement es)
 
---squiggleExpr = Token.braces lexer (semiFold (Token.semiSep1 statement <?> "empty do block not aloud"))
---semiFold = undefined
---statement :: Parser (Expr -> Expr)
---statement = letBind <|> effectBind <|> compoundExpr
-
-letBind = do
-    i <- identifier
-    reservedOp "="
-    v <- expr;
-    Token.semi lexer;
-    b <- expr;
-    return $ ExprLetBind i v b
-
-effectBind = do
-    i <- identifier
-    reservedOp "<-"
-    v <- expr
-    Token.semi lexer
-    b <- expr
-    return $ ExprEffectBind i v b
-
-compoundExpr = do
-    e1 <- expr
-    Token.semi lexer
-    e2 <- expr
-    return $ ExprCompound e1 e2
-
-mySemiSep :: Parser Expr
-mySemiSep = do
-        try letBind
-    <|> try effectBind
-    <|> try compoundExpr
-    <|> expr
+statement :: Parser Statement
+statement = do
+        try (SLet <$> identifier <* reservedOp "=" <*> expr)
+    <|> try (SEffect <$> identifier <* reservedOp "<-" <*> expr)
+    <|> (SExpr <$> expr)
 
 formula :: Parser Expr
 formula = buildExpressionParser table juxta <?> "formula"
