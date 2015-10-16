@@ -9,8 +9,16 @@ main = runTestTT $ TestList [
     "A number" ~:
         readExpr "413" ~?= ExprNum 413,
 
-    "A identifier applied to two identifiers." ~:
+    "f applied to x" ~:
+        readExpr "f x" ~?= ExprApp (ExprVar "f") (ExprVar "x"),
+
+    "f applied to x with extraneous parens" ~:
+        readExpr "f(x)" ~?= ExprApp (ExprVar "f") (ExprVar "x"),
+
+{-
+    "A identifier applied to a 2-tuple." ~:
         readExpr "a(b,c)" ~?= ExprApp (ExprVar "a") [ExprVar "b", ExprVar "c"],
+-}
 
     "An if-then-else with identifiers" ~:
         readExpr "if a then b else c" ~?=
@@ -22,8 +30,8 @@ main = runTestTT $ TestList [
 
     "An effect binding with a resulting expression" ~:
         readExpr "{a<-f(x);g(a)}" ~?=
-        ExprEffectBind "a" (ExprApp (ExprVar "f") [ExprVar "x"])
-                           (ExprApp (ExprVar "g") [ExprVar "a"]),
+        ExprEffectBind "a" (ExprApp (ExprVar "f") (ExprVar "x"))
+                           (ExprApp (ExprVar "g") (ExprVar "a")),
 
     "Arithmetic expression: 1 + 2 * 3" ~:
         readExpr "1 + 2 * 3" ~?=
@@ -53,9 +61,16 @@ main = runTestTT $ TestList [
         readExpr "{ x = 5 }" ~?= ExprNil,
 
     "Simple module" ~:
+        readModule "square x = { x * x }" ~?=
+            Module [
+                Definition "square" [PatternId "x"]
+                           (ExprBinop Mul (ExprVar "x") (ExprVar "x"))
+            ],
+
+    "Square with extra parens" ~:
         readModule "square (x) = { x * x }" ~?=
             Module [
-                Definition "square" [(PatternId "x")]
+                Definition "square" [PatternId "x"]
                            (ExprBinop Mul (ExprVar "x") (ExprVar "x"))
             ],
 
@@ -64,6 +79,15 @@ main = runTestTT $ TestList [
             Module [
                 Definition "add" [PatternTuple [PatternId "x", PatternId "y"]]
                            (ExprBinop Add (ExprVar "x") (ExprVar "y"))
+            ],
+
+    "Two definitions in a module" ~:
+        readModule "add (x,y) = { x + y }\nmul (x,y) = { x * y }" ~?=
+            Module [
+                Definition "add" [PatternTuple [PatternId "x", PatternId "y"]]
+                           (ExprBinop Add (ExprVar "x") (ExprVar "y")),
+                Definition "mul" [PatternTuple [PatternId "x", PatternId "y"]]
+                           (ExprBinop Mul (ExprVar "x") (ExprVar "y"))
             ]
     ]
 
