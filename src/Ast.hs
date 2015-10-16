@@ -26,7 +26,7 @@ data Pattern =
 data Expr =
     -- Core syntax
       ExprVar Identifier
-    | ExprApp Expr [Expr]
+    | ExprApp Expr Expr
     | ExprAbs [Parameter] Expr
     | ExprLetBind Identifier Expr Expr
     | ExprEffectBind Identifier Expr Expr
@@ -44,7 +44,8 @@ data Expr =
 
     -- Literal
     | ExprNum Integer
-    | ExprNil -- like this is just defined in language
+    | ExprTuple [Expr]
+    | ExprNil -- likely this is just defined in language as an AST
 
     deriving (Show, Eq)
 
@@ -52,4 +53,6 @@ data Operator =
       Add | Sub | Mul | Div
     | BoolEq | Ne | Gt | Lt | Gte | Lte
     | And | Or
+    -- | Not, Negate
     deriving (Show, Eq)
+

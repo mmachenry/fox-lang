@@ -11,7 +11,7 @@ allOf p = do
     Token.whiteSpace lexer
     r <- p
     eof
-    return r
+    pure r
 
 readModule :: String -> Module
 readModule str = case parse (allOf definitions) "fox" str of
@@ -79,16 +79,13 @@ definitions = Module <$> many definition
 definition :: Parser Definition
 definition = Definition
     <$> identifier
-    <*> parameters
+    <*> many pattern
     <*> (reservedOp "=" *> expr)
-
-parameters :: Parser [Pattern]
-parameters = many pattern
 
 pattern :: Parser Pattern
 pattern =
-    PatternId <$> identifier
-    <|> PatternTuple <$> parens (commaSep pattern)
+        PatternId <$> identifier
+    <|> parenOrTuple PatternTuple pattern
 
 expr :: Parser Expr
 expr =
@@ -121,17 +118,18 @@ statement = do
 formula :: Parser Expr
 formula = buildExpressionParser table juxta <?> "formula"
     where table = fmap (fmap infl) operators
-          infl (lex, abs) = Infix (reservedOp lex >> return (ExprBinop abs))
+          infl (lex, abs) = Infix (reservedOp lex >> pure (ExprBinop abs))
                                   AssocLeft
 
 juxta :: Parser Expr
-juxta = do
-    a <- atom
-    args <- many arguments
-    return $ foldl ExprApp a args
+juxta = foldl1 ExprApp <$> many1 atom
 
 atom :: Parser Expr
-atom = variable <|> number <|> parens expr <?> "atom"
+atom =
+        variable
+    <|> number
+    <|> parenOrTuple ExprTuple expr
+    <?> "atom"
 
 variable :: Parser Expr
 variable = ExprVar <$> identifier
@@ -139,6 +137,12 @@ variable = ExprVar <$> identifier
 number :: Parser Expr
 number = (ExprNum . fromIntegral) <$> natural
 
-arguments :: Parser [Expr]
-arguments = parens $ commaSep expr
+parenOrTuple :: ([a] -> a) -> Parser a -> Parser a
+parenOrTuple cons parser = do
+    reservedOp "("
+    items <- Token.commaSep1 lexer parser
+    reservedOp ")"
+    case items of
+        [item] -> pure item
+        _ -> pure $ cons items
 
