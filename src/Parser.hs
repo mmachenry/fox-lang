@@ -1,4 +1,4 @@
-module Parser (expr, readExpr) where
+module Parser (expr, readModule, readExpr) where
 
 import Ast
 import Text.ParserCombinators.Parsec
@@ -13,6 +13,11 @@ allOf p = do
     eof
     return r
 
+readModule :: String -> Module
+readModule str = case parse (allOf definitions) "fox" str of
+    Left err -> error (show err)
+    Right val -> val
+
 readExpr :: String -> Expr
 readExpr str = case parse (allOf expr) "fox" str of
     Left err -> error (show err)
@@ -23,12 +28,11 @@ readExpr str = case parse (allOf expr) "fox" str of
 --------------------------------------------------------------------------------
 
 lexer :: Token.TokenParser ()
-lexer = Token.makeTokenParser style
-    where style = emptyDef {
-              Token.reservedOpNames =
-                  ["=","<-"] ++ concatMap (fmap fst) operators,
-              Token.reservedNames = ["if", "then", "else"],
-              Token.commentLine = "#" }
+lexer = Token.makeTokenParser $ emptyDef {
+    Token.commentLine = "#",
+    Token.reservedOpNames = ["=","<-"] ++ concatMap (fmap fst) operators,
+    Token.reservedNames = ["if", "then", "else"]
+    }
 
 operators = [
     [("*",Mul), ("/", Div)],
@@ -68,6 +72,23 @@ braces = Token.braces lexer
 --------------------------------------------------------------------------------
 
 data Statement = SLet String Expr | SEffect String Expr | SExpr Expr
+
+definitions :: Parser Module
+definitions = Module <$> many definition
+
+definition :: Parser Definition
+definition = Definition
+    <$> identifier
+    <*> parameters
+    <*> (reservedOp "=" *> expr)
+
+parameters :: Parser [Pattern]
+parameters = many pattern
+
+pattern :: Parser Pattern
+pattern =
+    PatternId <$> identifier
+    <|> PatternTuple <$> parens (commaSep pattern)
 
 expr :: Parser Expr
 expr =
@@ -113,10 +134,10 @@ atom :: Parser Expr
 atom = variable <|> number <|> parens expr <?> "atom"
 
 variable :: Parser Expr
-variable = ExprVar `fmap` identifier
+variable = ExprVar <$> identifier
 
 number :: Parser Expr
-number = (ExprNum . fromIntegral) `fmap` natural
+number = (ExprNum . fromIntegral) <$> natural
 
 arguments :: Parser [Expr]
 arguments = parens $ commaSep expr

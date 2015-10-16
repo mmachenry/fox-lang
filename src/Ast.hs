@@ -1,4 +1,7 @@
 module Ast (
+    Module(..),
+    Definition(..),
+    Pattern(..),
     Expr(..),
     Operator(..)
     ) where
@@ -10,6 +13,15 @@ data Parameter = Parameter Identifier Type
 
 data Type = InferredType
     deriving (Show, Eq)
+
+data Module = Module [Definition] deriving (Eq, Show)
+
+data Definition = Definition Identifier [Pattern] Expr deriving (Eq, Show)
+
+data Pattern =
+      PatternId Identifier
+    | PatternTuple [Pattern]
+    deriving (Eq, Show)
 
 data Expr =
     -- Core syntax
@@ -32,12 +44,12 @@ data Expr =
 
     -- Literal
     | ExprNum Integer
-    | ExprNil
+    | ExprNil -- like this is just defined in language
 
     deriving (Show, Eq)
 
 data Operator =
-    Add | Sub | Mul | Div
+      Add | Sub | Mul | Div
     | BoolEq | Ne | Gt | Lt | Gte | Lte
     | And | Or
     deriving (Show, Eq)

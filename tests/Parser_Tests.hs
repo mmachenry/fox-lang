@@ -50,6 +50,20 @@ main = runTestTT $ TestList [
                                     (ExprBinop Gte (ExprNum 5) (ExprNum 4))),
 
     "Let at the end of a block" ~:
-        readExpr "{ x = 5 }" ~?= ExprNil
+        readExpr "{ x = 5 }" ~?= ExprNil,
+
+    "Simple module" ~:
+        readModule "square (x) = { x * x }" ~?=
+            Module [
+                Definition "square" [(PatternId "x")]
+                           (ExprBinop Mul (ExprVar "x") (ExprVar "x"))
+            ],
+
+    "Two argument function" ~:
+        readModule "add (x,y) = { x + y }" ~?=
+            Module [
+                Definition "add" [PatternTuple [PatternId "x", PatternId "y"]]
+                           (ExprBinop Add (ExprVar "x") (ExprVar "y"))
+            ]
     ]
 
