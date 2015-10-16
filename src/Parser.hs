@@ -1,4 +1,4 @@
-module Parser (expr, readModule, readExpr) where
+module Parser (expr, readStr, definitions) where
 
 import Ast
 import Text.ParserCombinators.Parsec
@@ -6,22 +6,12 @@ import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
 
+
+readStr :: Parser a -> String -> Either ParseError a
+readStr parser str = parse (allOf parser) "fox" str
+
 allOf :: Parser a -> Parser a
-allOf p = do
-    Token.whiteSpace lexer
-    r <- p
-    eof
-    pure r
-
-readModule :: String -> Module
-readModule str = case parse (allOf definitions) "fox" str of
-    Left err -> error (show err)
-    Right val -> val
-
-readExpr :: String -> Expr
-readExpr str = case parse (allOf expr) "fox" str of
-    Left err -> error (show err)
-    Right val -> val
+allOf p = Token.whiteSpace lexer *> p <* eof
 
 --------------------------------------------------------------------------------
 -- Lexer
@@ -31,7 +21,7 @@ lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser $ emptyDef {
     Token.commentLine = "#",
     Token.reservedOpNames = ["=","<-"] ++ concatMap (fmap fst) operators,
-    Token.reservedNames = ["if", "then", "else"]
+    Token.reservedNames = ["if", "then", "else", "match"]
     }
 
 operators = [
@@ -90,6 +80,7 @@ pattern =
 expr :: Parser Expr
 expr =
         ifThenElse
+    <|> match
     <|> statementBlock
     <|> formula
 
@@ -98,6 +89,14 @@ ifThenElse = ExprIfThenElse
     <$> (reserved "if" *> expr)
     <*> (reserved "then" *> expr)
     <*> (reserved "else" *> expr)
+
+match :: Parser Expr
+match = ExprMatch
+    <$> (reserved "match" *> expr)
+    <*> braces (Token.semiSep1 lexer matchClause)
+
+matchClause :: Parser (Pattern, Expr)
+matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
 
 statementBlock :: Parser Expr
 statementBlock = foldStatement <$> braces (semiSep statement)
@@ -139,9 +138,7 @@ number = (ExprNum . fromIntegral) <$> natural
 
 parenOrTuple :: ([a] -> a) -> Parser a -> Parser a
 parenOrTuple cons parser = do
-    reservedOp "("
-    items <- Token.commaSep1 lexer parser
-    reservedOp ")"
+    items <- parens (Token.commaSep1 lexer parser)
     case items of
         [item] -> pure item
         _ -> pure $ cons items

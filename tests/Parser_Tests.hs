@@ -2,12 +2,23 @@ import Test.HUnit
 import Parser
 import Ast
 
-main = runTestTT $ TestList [
-    "A simple identifier" ~:
-        readExpr "id" ~?= ExprVar "id",
+expectRight parser str = case readStr parser str of
+    Left err -> error (show err)
+    Right val -> val
 
+expectLeft parser str = case readStr parser str of
+    Left err -> show err
+    Right _ -> error "No parse error."
+
+readExpr = expectRight expr
+readModule = expectRight definitions
+
+main = runTestTT $ TestList [
     "A number" ~:
         readExpr "413" ~?= ExprNum 413,
+
+    "A simple identifier" ~:
+        readExpr "id" ~?= ExprVar "id",
 
     "f applied to x" ~:
         readExpr "f x" ~?= ExprApp (ExprVar "f") (ExprVar "x"),
@@ -15,10 +26,9 @@ main = runTestTT $ TestList [
     "f applied to x with extraneous parens" ~:
         readExpr "f(x)" ~?= ExprApp (ExprVar "f") (ExprVar "x"),
 
-{-
     "A identifier applied to a 2-tuple." ~:
-        readExpr "a(b,c)" ~?= ExprApp (ExprVar "a") [ExprVar "b", ExprVar "c"],
--}
+        readExpr "a(b,c)" ~?=
+            ExprApp (ExprVar "a") (ExprTuple [ExprVar "b", ExprVar "c"]),
 
     "An if-then-else with identifiers" ~:
         readExpr "if a then b else c" ~?=
@@ -58,7 +68,7 @@ main = runTestTT $ TestList [
                                     (ExprBinop Gte (ExprNum 5) (ExprNum 4))),
 
     "Let at the end of a block" ~:
-        readExpr "{ x = 5 }" ~?= ExprNil,
+        expectRight expr "{ x = 5 }" ~?= ExprNil,
 
     "Simple module" ~:
         readModule "square x = { x * x }" ~?=
@@ -88,6 +98,43 @@ main = runTestTT $ TestList [
                            (ExprBinop Add (ExprVar "x") (ExprVar "y")),
                 Definition "mul" [PatternTuple [PatternId "x", PatternId "y"]]
                            (ExprBinop Mul (ExprVar "x") (ExprVar "y"))
-            ]
+            ],
+
+{-
+    "Pattern with value constructor" ~:
+         pattern "cons(x,xx)" ~?=
+            error "Doesn't work yet",
+-}
+
+    -- Examples from the paper:
+    --"sqr (x : int) = {x ∗ x}"
+    --"sqr (x : int) = {print (x); x ∗ x}"
+    -- twice (f : a -> partial a, x : a) = f(f(x))
+
+    "Fib example from papper" ~:
+        readModule "\
+        \    fib(n){\
+        \        f1 <- newref (1);\
+        \        f2 <- newref (1);\
+        \        repeat(n − 1) {\
+        \            sum <- !f1 +!f2;\
+        \            f1 := !f2;\
+        \            f2 := sum;\
+        \        }\
+        \        !f2 ;\
+        \     } " ~?=
+        Module [],
+
+    "Map example from paper" ~:
+        readModule "\
+        \    map(f,xs) = {\
+        \        match (xs) {\
+        \            cons(x,xx) -> { y <- f(x);\
+        \                            yy <- map(f,xx);\
+        \                            cons(y,yy) }\
+        \            nil -> nil\
+        \        }\
+        \    } " ~?=
+        Module []
     ]
 

@@ -34,6 +34,7 @@ data Expr =
 
     -- Other assumed syntax
     | ExprIfThenElse Expr Expr Expr
+    | ExprMatch Expr [(Pattern, Expr)]
     | ExprBinop Operator Expr Expr
     | ExprCompound Expr Expr
 
