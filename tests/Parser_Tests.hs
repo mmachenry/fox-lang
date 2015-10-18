@@ -34,15 +34,6 @@ main = runTestTT $ TestList [
         readExpr "if a then b else c" ~?=
         ExprIfThenElse (ExprVar "a") (ExprVar "b") (ExprVar "c"),
 
-    "A let binding with a resulting expression" ~:
-        readExpr "{a = 2; a }" ~?=
-        ExprLetBind "a" (ExprNum 2) (ExprVar "a"),
-
-    "An effect binding with a resulting expression" ~:
-        readExpr "{a<-f(x);g(a)}" ~?=
-        ExprEffectBind "a" (ExprApp (ExprVar "f") (ExprVar "x"))
-                           (ExprApp (ExprVar "g") (ExprVar "a")),
-
     "Arithmetic expression: 1 + 2 * 3" ~:
         readExpr "1 + 2 * 3" ~?=
         ExprBinop Add (ExprNum 1) (ExprBinop Mul (ExprNum 2) (ExprNum 3)),
@@ -68,56 +59,60 @@ main = runTestTT $ TestList [
                                     (ExprBinop Gte (ExprNum 5) (ExprNum 4))),
 
     "Let at the end of a block" ~:
-        expectRight expr "{ x = 5 }" ~?= ExprNil,
+        expectRight definitions "f(x) { x = 5 }" ~?= Module [],
 
     "Simple module" ~:
-        readModule "square x = { x * x }" ~?=
+        readModule "square (x) { x * x }" ~?=
             Module [
-                Definition "square" [PatternId "x"]
-                           (ExprBinop Mul (ExprVar "x") (ExprVar "x"))
-            ],
-
-    "Square with extra parens" ~:
-        readModule "square (x) = { x * x }" ~?=
-            Module [
-                Definition "square" [PatternId "x"]
-                           (ExprBinop Mul (ExprVar "x") (ExprVar "x"))
+                Definition "square" [Parameter "x" TypeInfered]
+                           [ExprBinop Mul (ExprVar "x") (ExprVar "x")]
             ],
 
     "Two argument function" ~:
-        readModule "add (x,y) = { x + y }" ~?=
+        readModule "add (x,y) { x + y }" ~?=
             Module [
-                Definition "add" [PatternTuple [PatternId "x", PatternId "y"]]
-                           (ExprBinop Add (ExprVar "x") (ExprVar "y"))
+                Definition "add" [Parameter "x" TypeInfered,
+                                  Parameter "y" TypeInfered]
+                           [ExprBinop Add (ExprVar "x") (ExprVar "y")]
             ],
 
     "Two definitions in a module" ~:
-        readModule "add (x,y) = { x + y }\nmul (x,y) = { x * y }" ~?=
+        readModule "add (x,y) { x + y } mul (x,y) { x * y }" ~?=
             Module [
-                Definition "add" [PatternTuple [PatternId "x", PatternId "y"]]
-                           (ExprBinop Add (ExprVar "x") (ExprVar "y")),
-                Definition "mul" [PatternTuple [PatternId "x", PatternId "y"]]
-                           (ExprBinop Mul (ExprVar "x") (ExprVar "y"))
+                Definition "add" [Parameter "x" TypeInfered,
+                                  Parameter "y" TypeInfered]
+                           [ExprBinop Add (ExprVar "x") (ExprVar "y")],
+                Definition "mul" [Parameter "x" TypeInfered,
+                                  Parameter "y" TypeInfered]
+                           [ExprBinop Mul (ExprVar "x") (ExprVar "y")]
             ],
 
-{-
     "Pattern with value constructor" ~:
-         pattern "cons(x,xx)" ~?=
-            error "Doesn't work yet",
--}
+         readStr pattern "cons(x,xx)" ~?= Right (PatternId "d"),
 
     -- Examples from the paper:
-    --"sqr (x : int) = {x ∗ x}"
-    --"sqr (x : int) = {print (x); x ∗ x}"
-    -- twice (f : a -> partial a, x : a) = f(f(x))
+    "One argument function with type annotation" ~:
+        readModule "sqr (x : int) {x * x}" ~?= Module [
+            Definition "sqr" [Parameter "x" TypeInt] [
+                ExprBinop Mul (ExprVar "x") (ExprVar "x")]
+        ],
+            
+    "Square function with a print statement" ~:
+        readModule "sqr (x : int) {print (x); x * x}" ~?= Module [
+            Definition "sqr" [Parameter "x" TypeInt] [
+                ExprApp (ExprVar "print") (ExprVar "x"),
+                ExprBinop Mul (ExprVar "x") (ExprVar "x")]
+        ],
+            
+    --twice (f : a -> partial a, x : a) { f(f(x)) }
 
     "Fib example from papper" ~:
         readModule "\
         \    fib(n){\
         \        f1 <- newref (1);\
         \        f2 <- newref (1);\
-        \        repeat(n − 1) {\
-        \            sum <- !f1 +!f2;\
+        \        repeat (n - 1) {\
+        \            sum <- !f1 + !f2;\
         \            f1 := !f2;\
         \            f2 := sum;\
         \        }\
@@ -127,7 +122,7 @@ main = runTestTT $ TestList [
 
     "Map example from paper" ~:
         readModule "\
-        \    map(f,xs) = {\
+        \    map(f,xs) {\
         \        match (xs) {\
         \            cons(x,xx) -> { y <- f(x);\
         \                            yy <- map(f,xx);\

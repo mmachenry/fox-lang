@@ -1,22 +1,22 @@
 module Ast (
     Module(..),
     Definition(..),
+    Parameter(..),
     Pattern(..),
     Expr(..),
-    Operator(..)
+    Operator(..),
+    Type(..)
     ) where
 
 type Identifier = String
 
-data Parameter = Parameter Identifier Type
-    deriving (Show, Eq)
-
-data Type = InferredType
-    deriving (Show, Eq)
+data Type = TypeInfered | TypeInt deriving (Show, Eq)
 
 data Module = Module [Definition] deriving (Eq, Show)
 
-data Definition = Definition Identifier [Pattern] Expr deriving (Eq, Show)
+data Definition = Definition Identifier [Parameter] [Expr] deriving (Eq, Show)
+
+data Parameter = Parameter Identifier Type deriving (Eq, Show)
 
 data Pattern =
       PatternId Identifier
@@ -28,15 +28,15 @@ data Expr =
       ExprVar Identifier
     | ExprApp Expr Expr
     | ExprAbs [Parameter] Expr
-    | ExprLetBind Identifier Expr Expr
-    | ExprEffectBind Identifier Expr Expr
-    | ExprRun Expr
+    | ExprLetBind Identifier Expr
+    | ExprEffectBind Identifier Expr
+    | ExprRun [Expr]
 
     -- Other assumed syntax
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
+    | ExprRepeat Expr [Expr]
     | ExprBinop Operator Expr Expr
-    | ExprCompound Expr Expr
 
     -- References
     | ExprAlloc Expr
@@ -47,13 +47,12 @@ data Expr =
     | ExprNum Integer
     | ExprTuple [Expr]
     | ExprNil -- likely this is just defined in language as an AST
-
     deriving (Show, Eq)
 
 data Operator =
       Add | Sub | Mul | Div
     | BoolEq | Ne | Gt | Lt | Gte | Lte
     | And | Or
-    -- | Not, Negate
+    -- | Not Negate
     deriving (Show, Eq)
 
