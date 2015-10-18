@@ -26,7 +26,7 @@ data Pattern =
 data Expr =
     -- Core syntax
       ExprVar Identifier
-    | ExprApp Expr Expr
+    | ExprApp Expr [Expr]
     | ExprAbs [Parameter] Expr
     | ExprLetBind Identifier Expr
     | ExprEffectBind Identifier Expr

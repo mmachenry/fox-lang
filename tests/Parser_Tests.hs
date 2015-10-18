@@ -20,15 +20,12 @@ main = runTestTT $ TestList [
     "A simple identifier" ~:
         readExpr "id" ~?= ExprVar "id",
 
-    "f applied to x" ~:
-        readExpr "f x" ~?= ExprApp (ExprVar "f") (ExprVar "x"),
-
-    "f applied to x with extraneous parens" ~:
-        readExpr "f(x)" ~?= ExprApp (ExprVar "f") (ExprVar "x"),
+    "f applied to x " ~:
+        readExpr "f(x)" ~?= ExprApp (ExprVar "f") [(ExprVar "x")],
 
     "A identifier applied to a 2-tuple." ~:
         readExpr "a(b,c)" ~?=
-            ExprApp (ExprVar "a") (ExprTuple [ExprVar "b", ExprVar "c"]),
+            ExprApp (ExprVar "a") [ExprVar "b", ExprVar "c"],
 
     "An if-then-else with identifiers" ~:
         readExpr "if a then b else c" ~?=
@@ -58,8 +55,12 @@ main = runTestTT $ TestList [
                      (ExprBinop And (ExprBinop Lt (ExprNum 3) (ExprNum 4))
                                     (ExprBinop Gte (ExprNum 5) (ExprNum 4))),
 
+    -- I'm undecided on whether this should be a parser error or discovered in
+    -- a static pass of the AST.
     "Let at the end of a block" ~:
-        expectRight definitions "f(x) { x = 5 }" ~?= Module [],
+        expectRight definitions "f(x) { x = 5 }" ~?= Module [
+            Definition "f" [Parameter "x" TypeInfered]
+                [ExprLetBind "x" (ExprNum 5)]],
 
     "Simple module" ~:
         readModule "square (x) { x * x }" ~?=
@@ -100,11 +101,15 @@ main = runTestTT $ TestList [
     "Square function with a print statement" ~:
         readModule "sqr (x : int) {print (x); x * x}" ~?= Module [
             Definition "sqr" [Parameter "x" TypeInt] [
-                ExprApp (ExprVar "print") (ExprVar "x"),
+                ExprApp (ExprVar "print") [(ExprVar "x")],
                 ExprBinop Mul (ExprVar "x") (ExprVar "x")]
         ],
             
     --twice (f : a -> partial a, x : a) { f(f(x)) }
+
+    "Effect bind" ~:
+        readExpr "f1 <- newref (1)" ~?=
+            ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
 
     "Fib example from papper" ~:
         readModule "\

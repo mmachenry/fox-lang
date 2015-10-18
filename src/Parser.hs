@@ -139,13 +139,19 @@ statement = do
 -}
 
 formula :: Parser Expr
-formula = buildExpressionParser table juxta <?> "formula"
+formula = buildExpressionParser table app <?> "formula"
     where table = fmap (fmap infl) operators
           infl (lex, abs) = Infix (reservedOp lex >> pure (ExprBinop abs))
                                   AssocLeft
 
-juxta :: Parser Expr
-juxta = foldl1 ExprApp <$> many1 atom
+app :: Parser Expr
+app = do
+    a <- atom
+    args <- many arguments
+    return $ foldl ExprApp a args
+
+arguments :: Parser [Expr]
+arguments = parens (commaSep expr)
 
 atom :: Parser Expr
 atom =
