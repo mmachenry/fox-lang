@@ -26,6 +26,17 @@ fibExample =
     \        !f2 \
     \     } "
 
+mapExample =
+    "\
+    \    map(f,xs) {\
+    \        match (xs) {\
+    \            cons(x,xx) -> { y <- f(x);\
+    \                            yy <- map(f,xx);\
+    \                            cons(y,yy) };\
+    \            nil -> nil\
+    \        }\
+    \    } "
+
 main = runTestTT $ TestList [
     "A number" ~:
         readExpr "413" ~?= ExprNum 413,
@@ -102,7 +113,8 @@ main = runTestTT $ TestList [
             ],
 
     "Pattern with value constructor" ~:
-         readStr pattern "cons(x,xx)" ~?= Right (PatternId "d"),
+         expectRight pattern "cons(x,xx)" ~?=
+            PatternApp "cons" [PatternId "x", PatternId "xx"],
 
     -- Examples from the paper:
     "One argument function with type annotation" ~:
@@ -127,7 +139,7 @@ main = runTestTT $ TestList [
     "Dereference" ~:
         readExpr "!f1" ~?= ExprUnaryOp Dereference (ExprVar "f1"),
 
-    "Fib example from papper" ~:
+    "Fib example from paper" ~:
         readModule fibExample ~?= Module [
             Definition "fib" [Parameter "n" TypeInfered] [
                 ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
@@ -151,15 +163,19 @@ main = runTestTT $ TestList [
                               (ExprUnaryOp Dereference (ExprVar "f2")),
 
     "Map example from paper" ~:
-        readModule "\
-        \    map(f,xs) {\
-        \        match (xs) {\
-        \            cons(x,xx) -> { y <- f(x);\
-        \                            yy <- map(f,xx);\
-        \                            cons(y,yy) }\
-        \            nil -> nil\
-        \        }\
-        \    } " ~?=
-        Module []
+        readModule mapExample ~?= Module [
+            Definition "map" [Parameter "f" TypeInfered,
+                              Parameter "xs" TypeInfered] [
+                ExprMatch (ExprVar "xs") [
+                    (PatternApp "cons" [PatternId "x",PatternId "xx"],
+                        ExprStatementBlock [
+                            ExprEffectBind "y" (ExprApp (ExprVar "f") [ExprVar "x"]),
+                            ExprEffectBind "yy" (ExprApp (ExprVar "map") [ExprVar "f",ExprVar "xx"]),
+                            ExprApp (ExprVar "cons") [ExprVar "y",ExprVar "yy"]
+                        ]),
+                    (PatternId "nil",ExprVar "nil")
+                    ]
+                ]
+            ]
     ]
 

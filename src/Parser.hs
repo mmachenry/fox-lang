@@ -7,7 +7,7 @@ import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
 
 readStr :: Parser a -> String -> Either ParseError a
-readStr parser str = parse (allOf parser) "fox" str
+readStr parser = parse (allOf parser) "fox"
 
 allOf :: Parser a -> Parser a
 allOf p = Token.whiteSpace lexer *> p <* eof
@@ -85,9 +85,18 @@ statementBlock = braces (semiSep statement)
 
 statement :: Parser Expr
 statement =
-        try (ExprLetBind <$> identifier <* reservedOp "=" <*> expr)
-    <|> try (ExprEffectBind <$> identifier <* reservedOp "<-" <*> expr)
+        try letBind
+    <|> try effectBind
+    <|> match
+    <|> repeat_
+    <|> run
     <|> expr
+
+letBind :: Parser Expr
+letBind = ExprLetBind <$> identifier <* reservedOp "=" <*> expr
+
+effectBind :: Parser Expr
+effectBind = ExprEffectBind <$> identifier <* reservedOp "<-" <*> expr
 
 parameter :: Parser Parameter
 parameter = Parameter
@@ -95,19 +104,18 @@ parameter = Parameter
     <*> option TypeInfered (reservedOp ":" *> type_)
 
 type_ :: Parser Type
-type_ = reserved "int" *> pure TypeInt
+type_ =
+    reserved "int" *> pure TypeInt
+    -- <|> reserved "bool" *> pure TypeBool
 
 pattern :: Parser Pattern
 pattern =
-        PatternId <$> identifier
-    <|> parenOrTuple PatternTuple pattern
+         try (PatternApp <$> identifier <*> parens (commaSep pattern))
+     <|> PatternId <$> identifier
 
 expr :: Parser Expr
 expr =
         ifThenElse
-    <|> match
-    <|> repeat_
-    <|> run
     <|> formula
 
 ifThenElse :: Parser Expr
@@ -122,7 +130,7 @@ match = ExprMatch
     <*> braces (Token.semiSep1 lexer matchClause)
 
 matchClause :: Parser (Pattern, Expr)
-matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
+matchClause = (,) <$> pattern <*> (reservedOp "->" *> statement)
 
 repeat_ :: Parser Expr
 repeat_ = ExprRepeat
@@ -130,10 +138,11 @@ repeat_ = ExprRepeat
     <*> statementBlock
 
 run :: Parser Expr
-run = ExprRun <$> braces (semiSep expr)
+run = ExprRun <$> (reserved "run" *> braces (semiSep expr))
 
 formula :: Parser Expr
 formula = buildExpressionParser table app <?> "formula"
+    -- FIXME: this assumes all infix operators happen before all prefix
     where table = fmap (fmap prefix) unaryOperators
                     ++ fmap (fmap infl) binaryOperators
           infl (lex, abs) = Infix (reservedOp lex >> pure (ExprBinOp abs))
@@ -144,7 +153,7 @@ app :: Parser Expr
 app = do
     a <- atom
     args <- many arguments
-    return $ foldl ExprApp a args
+    pure $ foldl ExprApp a args
 
 arguments :: Parser [Expr]
 arguments = parens (commaSep expr)
@@ -153,7 +162,8 @@ atom :: Parser Expr
 atom =
         variable
     <|> number
-    <|> parenOrTuple ExprTuple expr
+    <|> parens expr
+    <|> ExprStatementBlock <$> statementBlock
     <?> "atom"
 
 variable :: Parser Expr
@@ -161,11 +171,4 @@ variable = ExprVar <$> identifier
 
 number :: Parser Expr
 number = (ExprNum . fromIntegral) <$> natural
-
-parenOrTuple :: ([a] -> a) -> Parser a -> Parser a
-parenOrTuple cons parser = do
-    items <- parens (Token.commaSep1 lexer parser)
-    pure $ case items of
-        [item] -> item
-        _ -> cons items
 

@@ -21,7 +21,7 @@ data Parameter = Parameter Identifier Type deriving (Eq, Show)
 
 data Pattern =
       PatternId Identifier
-    | PatternTuple [Pattern]
+    | PatternApp Identifier [Pattern]
     deriving (Eq, Show)
 
 data Expr =
@@ -37,6 +37,7 @@ data Expr =
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
     | ExprRepeat Expr [Expr]
+    | ExprStatementBlock [Expr]
     | ExprBinOp BinOp Expr Expr
     | ExprUnaryOp UnaryOp Expr
 
