@@ -1,4 +1,4 @@
-module Parser (readStr, definitions, expr, pattern) where
+module Parser (readStr, definitions, expr, pattern, statement) where
 
 import Ast
 import Text.ParserCombinators.Parsec
@@ -20,21 +20,27 @@ lexer :: Token.TokenParser ()
 lexer = Token.makeTokenParser $ emptyDef {
     --Token.commentLine = "#",
     Token.reservedOpNames =
-        ["=","<-","->",":","!",":="]
-        ++ concatMap (fmap fst) operators,
+        ["=","<-","->",":"]
+        ++ concatMap (fmap fst) binaryOperators
+        ++ concatMap (fmap fst) unaryOperators,
     Token.reservedNames = [
         "if", "then", "else",
         "match", "repeat",
-        "newref", "run"]
+        "run"]
     }
 
-operators = [
+binaryOperators = [
     [("*",Mul), ("/", Div)],
     [("+", Add), ("-", Sub)],
     [(">",Gt), ("<", Lt), (">=", Gte), ("<=", Lte)],
     [("==", BoolEq), ("!=", Ne)],
     [("&&", And)],
-    [("||", Or)]
+    [("||", Or)],
+    [(":=", Assign)]
+    ]
+
+unaryOperators = [
+    [("!", Dereference)]
     ]
 
 natural :: Parser Integer
@@ -65,8 +71,6 @@ braces = Token.braces lexer
 -- Parser
 --------------------------------------------------------------------------------
 
-data Statement = SLet String Expr | SEffect String Expr | SExpr Expr
-
 definitions :: Parser Module
 definitions = Module <$> many definition
 
@@ -74,7 +78,16 @@ definition :: Parser Definition
 definition = Definition
     <$> identifier
     <*> parens (commaSep parameter)
-    <*> braces (semiSep expr)
+    <*> statementBlock
+
+statementBlock :: Parser [Expr]
+statementBlock = braces (semiSep statement)
+
+statement :: Parser Expr
+statement =
+        try (ExprLetBind <$> identifier <* reservedOp "=" <*> expr)
+    <|> try (ExprEffectBind <$> identifier <* reservedOp "<-" <*> expr)
+    <|> expr
 
 parameter :: Parser Parameter
 parameter = Parameter
@@ -114,35 +127,18 @@ matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
 repeat_ :: Parser Expr
 repeat_ = ExprRepeat
     <$> (reserved "repeat" *> parens expr)
-    <*> braces (semiSep expr)
+    <*> statementBlock
 
 run :: Parser Expr
 run = ExprRun <$> braces (semiSep expr)
 
-{-
--- TODO Return ParseError, don't raise exception
-statementBlock :: Parser Expr
-statementBlock = foldStatement <$> braces (semiSep statement)
-    where foldStatement :: [Statement] -> Expr
-          foldStatement [] = error "empty statement block"
-          foldStatement ((SLet i v):es) = ExprLetBind i v (foldStatement es)
-          foldStatement ((SEffect i v):es) =
-              ExprEffectBind i v (foldStatement es)
-          foldStatement [(SExpr e)] = e
-          foldStatement ((SExpr e):es) = ExprCompound e (foldStatement es)
-
-statement :: Parser Statement
-statement = do
-        try (SLet <$> identifier <* reservedOp "=" <*> expr)
-    <|> try (SEffect <$> identifier <* reservedOp "<-" <*> expr)
-    <|> (SExpr <$> expr)
--}
-
 formula :: Parser Expr
 formula = buildExpressionParser table app <?> "formula"
-    where table = fmap (fmap infl) operators
-          infl (lex, abs) = Infix (reservedOp lex >> pure (ExprBinop abs))
+    where table = fmap (fmap prefix) unaryOperators
+                    ++ fmap (fmap infl) binaryOperators
+          infl (lex, abs) = Infix (reservedOp lex >> pure (ExprBinOp abs))
                                   AssocLeft
+          prefix (lex, abs) = Prefix (reservedOp lex *> pure (ExprUnaryOp abs))
 
 app :: Parser Expr
 app = do
@@ -155,9 +151,7 @@ arguments = parens (commaSep expr)
 
 atom :: Parser Expr
 atom =
-        try (ExprLetBind <$> identifier <* reservedOp "=" <*> expr)
-    <|> try (ExprEffectBind <$> identifier <* reservedOp "<-" <*> expr)
-    <|> variable
+        variable
     <|> number
     <|> parenOrTuple ExprTuple expr
     <?> "atom"

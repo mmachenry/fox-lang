@@ -13,6 +13,19 @@ expectLeft parser str = case readStr parser str of
 readExpr = expectRight expr
 readModule = expectRight definitions
 
+fibExample =
+    "\
+    \    fib(n){\
+    \        f1 <- newref (1);\
+    \        f2 <- newref (1);\
+    \        repeat (n - 1) {\
+    \            sum <- !f1 + !f2;\
+    \            f1 := !f2;\
+    \            f2 := sum\
+    \        } ;\
+    \        !f2 \
+    \     } "
+
 main = runTestTT $ TestList [
     "A number" ~:
         readExpr "413" ~?= ExprNum 413,
@@ -33,27 +46,27 @@ main = runTestTT $ TestList [
 
     "Arithmetic expression: 1 + 2 * 3" ~:
         readExpr "1 + 2 * 3" ~?=
-        ExprBinop Add (ExprNum 1) (ExprBinop Mul (ExprNum 2) (ExprNum 3)),
+        ExprBinOp Add (ExprNum 1) (ExprBinOp Mul (ExprNum 2) (ExprNum 3)),
 
     "Arithmetic expression: 1 * 2 + 3" ~:
         readExpr "1 * 2 + 3" ~?=
-        ExprBinop Add (ExprBinop Mul (ExprNum 1) (ExprNum 2)) (ExprNum 3),
+        ExprBinOp Add (ExprBinOp Mul (ExprNum 1) (ExprNum 2)) (ExprNum 3),
 
     "Arithmetic expression: 1 * (2 + 3) " ~:
         readExpr "1 * (2 + 3)" ~?=
-        ExprBinop Mul (ExprNum 1) (ExprBinop Add (ExprNum 2) (ExprNum 3)),
+        ExprBinOp Mul (ExprNum 1) (ExprBinOp Add (ExprNum 2) (ExprNum 3)),
 
     "Boolean expression: 3 < 4 && 5 >= 4 || 1 != 0" ~:
         readExpr "3 < 4 && 5 >= 4 || 1 != 0" ~?=
-        ExprBinop Or (ExprBinop And (ExprBinop Lt (ExprNum 3) (ExprNum 4))
-                                    (ExprBinop Gte (ExprNum 5) (ExprNum 4)))
-                     (ExprBinop Ne (ExprNum 1) (ExprNum 0)),
+        ExprBinOp Or (ExprBinOp And (ExprBinOp Lt (ExprNum 3) (ExprNum 4))
+                                    (ExprBinOp Gte (ExprNum 5) (ExprNum 4)))
+                     (ExprBinOp Ne (ExprNum 1) (ExprNum 0)),
 
     "Boolean expression: 1 != 0 || 3 < 4 && 5 >= 4" ~:
         readExpr "1 != 0 || 3 < 4 && 5 >= 4" ~?=
-        ExprBinop Or (ExprBinop Ne (ExprNum 1) (ExprNum 0))
-                     (ExprBinop And (ExprBinop Lt (ExprNum 3) (ExprNum 4))
-                                    (ExprBinop Gte (ExprNum 5) (ExprNum 4))),
+        ExprBinOp Or (ExprBinOp Ne (ExprNum 1) (ExprNum 0))
+                     (ExprBinOp And (ExprBinOp Lt (ExprNum 3) (ExprNum 4))
+                                    (ExprBinOp Gte (ExprNum 5) (ExprNum 4))),
 
     -- I'm undecided on whether this should be a parser error or discovered in
     -- a static pass of the AST.
@@ -66,7 +79,7 @@ main = runTestTT $ TestList [
         readModule "square (x) { x * x }" ~?=
             Module [
                 Definition "square" [Parameter "x" TypeInfered]
-                           [ExprBinop Mul (ExprVar "x") (ExprVar "x")]
+                           [ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
             ],
 
     "Two argument function" ~:
@@ -74,7 +87,7 @@ main = runTestTT $ TestList [
             Module [
                 Definition "add" [Parameter "x" TypeInfered,
                                   Parameter "y" TypeInfered]
-                           [ExprBinop Add (ExprVar "x") (ExprVar "y")]
+                           [ExprBinOp Add (ExprVar "x") (ExprVar "y")]
             ],
 
     "Two definitions in a module" ~:
@@ -82,10 +95,10 @@ main = runTestTT $ TestList [
             Module [
                 Definition "add" [Parameter "x" TypeInfered,
                                   Parameter "y" TypeInfered]
-                           [ExprBinop Add (ExprVar "x") (ExprVar "y")],
+                           [ExprBinOp Add (ExprVar "x") (ExprVar "y")],
                 Definition "mul" [Parameter "x" TypeInfered,
                                   Parameter "y" TypeInfered]
-                           [ExprBinop Mul (ExprVar "x") (ExprVar "y")]
+                           [ExprBinOp Mul (ExprVar "x") (ExprVar "y")]
             ],
 
     "Pattern with value constructor" ~:
@@ -95,35 +108,47 @@ main = runTestTT $ TestList [
     "One argument function with type annotation" ~:
         readModule "sqr (x : int) {x * x}" ~?= Module [
             Definition "sqr" [Parameter "x" TypeInt] [
-                ExprBinop Mul (ExprVar "x") (ExprVar "x")]
+                ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
         ],
             
     "Square function with a print statement" ~:
-        readModule "sqr (x : int) {print (x); x * x}" ~?= Module [
+        readModule "sqr (x : int) {print (x); x * x }" ~?= Module [
             Definition "sqr" [Parameter "x" TypeInt] [
                 ExprApp (ExprVar "print") [(ExprVar "x")],
-                ExprBinop Mul (ExprVar "x") (ExprVar "x")]
+                ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
         ],
             
     --twice (f : a -> partial a, x : a) { f(f(x)) }
 
     "Effect bind" ~:
-        readExpr "f1 <- newref (1)" ~?=
+        expectRight statement "f1 <- newref (1)" ~?=
             ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
 
+    "Dereference" ~:
+        readExpr "!f1" ~?= ExprUnaryOp Dereference (ExprVar "f1"),
+
     "Fib example from papper" ~:
-        readModule "\
-        \    fib(n){\
-        \        f1 <- newref (1);\
-        \        f2 <- newref (1);\
-        \        repeat (n - 1) {\
-        \            sum <- !f1 + !f2;\
-        \            f1 := !f2;\
-        \            f2 := sum;\
-        \        }\
-        \        !f2 ;\
-        \     } " ~?=
-        Module [],
+        readModule fibExample ~?= Module [
+            Definition "fib" [Parameter "n" TypeInfered] [
+                ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
+                ExprEffectBind "f2" (ExprApp (ExprVar "newref") [ExprNum 1]),
+                ExprRepeat (ExprBinOp Sub (ExprVar "n") (ExprNum 1)) [
+                    ExprEffectBind "sum" (ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1")) (ExprUnaryOp Dereference (ExprVar "f2"))),
+                    ExprBinOp Assign (ExprVar "f1") (ExprUnaryOp Dereference (ExprVar "f2")),
+                    ExprBinOp Assign (ExprVar "f2") (ExprVar "sum")
+                ],
+                ExprUnaryOp Dereference (ExprVar "f2")]],
+
+    "Sum line of fib" ~:
+        expectRight statement "sum <- !f1 + !f2" ~?=
+            ExprEffectBind "sum"
+                (ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1"))
+                               (ExprUnaryOp Dereference (ExprVar "f2"))),
+
+    "Double deref" ~:
+        expectRight expr "!f1 + !f2" ~?=
+                ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1"))
+                              (ExprUnaryOp Dereference (ExprVar "f2")),
 
     "Map example from paper" ~:
         readModule "\

@@ -4,8 +4,9 @@ module Ast (
     Parameter(..),
     Pattern(..),
     Expr(..),
-    Operator(..),
-    Type(..)
+    BinOp(..),
+    UnaryOp(..),
+    Type(..),
     ) where
 
 type Identifier = String
@@ -36,7 +37,8 @@ data Expr =
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
     | ExprRepeat Expr [Expr]
-    | ExprBinop Operator Expr Expr
+    | ExprBinOp BinOp Expr Expr
+    | ExprUnaryOp UnaryOp Expr
 
     -- References
     | ExprAlloc Expr
@@ -49,10 +51,12 @@ data Expr =
     | ExprNil -- likely this is just defined in language as an AST
     deriving (Show, Eq)
 
-data Operator =
+data BinOp =
       Add | Sub | Mul | Div
     | BoolEq | Ne | Gt | Lt | Gte | Lte
     | And | Or
-    -- | Not Negate
+    | Assign
     deriving (Show, Eq)
+
+data UnaryOp = Dereference deriving (Show, Eq)
 
