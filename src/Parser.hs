@@ -109,6 +109,7 @@ parameter = Parameter
 type_ :: Parser Type
 type_ =
     reserved "int" *> pure TypeInt
+    <|> TypeParametric <$> identifier
     -- <|> reserved "bool" *> pure TypeBool
 
 pattern :: Parser Pattern
