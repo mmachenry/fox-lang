@@ -30,6 +30,7 @@ lexer = Token.makeTokenParser $ emptyDef {
         "run"]
     }
 
+binaryOperators :: [[(String, BinOp)]]
 binaryOperators = [
     [("*",Mul), ("/", Div)],
     [("+", Add), ("-", Sub)],
@@ -40,6 +41,7 @@ binaryOperators = [
     [(":=", Assign)]
     ]
 
+unaryOperators :: [[(String, UnaryOp)]]
 unaryOperators = [
     [("!", Dereference)]
     ]
