@@ -1,7 +1,8 @@
 module Parser (readStr, definitions, expr, pattern, statement) where
 
 import Ast
-import Text.ParserCombinators.Parsec
+import Control.Applicative
+import Text.ParserCombinators.Parsec hiding (many, (<|>))
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
