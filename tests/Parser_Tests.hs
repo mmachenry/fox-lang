@@ -130,7 +130,12 @@ main = runTestTT $ TestList [
                 ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
         ],
             
-    --twice (f : a -> partial a, x : a) { f(f(x)) }
+    "Twice: a higher-order function with type annotation" ~:
+        readModule "twice (f : a -> partial a, x : a) { f(f(x)) }" ~?= Module [
+            Definition "twice" [Parameter "f" TypeInfered, Parameter "x" TypeInfered] [
+                ExprApp (ExprVar "f") [ExprApp (ExprVar "f") [ExprVar "x"]]
+                ]
+            ],
 
     "Effect bind" ~:
         expectRight statement "f1 <- newref (1)" ~?=
