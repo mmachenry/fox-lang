@@ -1,7 +1,8 @@
 module Parser (readStr, definitions, expr, pattern, statement) where
 
 import Ast
-import Text.ParserCombinators.Parsec
+import Control.Applicative
+import Text.ParserCombinators.Parsec hiding (many, (<|>))
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
@@ -29,6 +30,7 @@ lexer = Token.makeTokenParser $ emptyDef {
         "run"]
     }
 
+binaryOperators :: [[(String, BinOp)]]
 binaryOperators = [
     [("*",Mul), ("/", Div)],
     [("+", Add), ("-", Sub)],
@@ -39,6 +41,7 @@ binaryOperators = [
     [(":=", Assign)]
     ]
 
+unaryOperators :: [[(String, UnaryOp)]]
 unaryOperators = [
     [("!", Dereference)]
     ]
@@ -106,6 +109,7 @@ parameter = Parameter
 type_ :: Parser Type
 type_ =
     reserved "int" *> pure TypeInt
+    <|> TypeParametric <$> identifier
     -- <|> reserved "bool" *> pure TypeBool
 
 pattern :: Parser Pattern
