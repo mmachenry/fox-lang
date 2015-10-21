@@ -1,8 +1,7 @@
 module Parser (readStr, definitions, expr, pattern, statement) where
 
 import Ast
-import Control.Applicative
-import Text.ParserCombinators.Parsec hiding (many, (<|>))
+import Text.ParserCombinators.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
@@ -108,9 +107,14 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-    reserved "int" *> pure TypeInt
-    <|> TypeParametric <$> identifier
+        try (TypeFunction <$> type__ <*> (reserved "->" *> type_))
+    <|> type__
     -- <|> reserved "bool" *> pure TypeBool
+
+type__ :: Parser Type
+type__ =
+        reserved "int" *> pure TypeInt
+    <|> TypeParametric <$> identifier
 
 pattern :: Parser Pattern
 pattern =
