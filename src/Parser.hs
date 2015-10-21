@@ -107,7 +107,7 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-        try (TypeFunction <$> type__ <*> (reserved "->" *> type_))
+        try (TypeFunction <$> type__ <*> (reservedOp "->" *> type_))
     <|> type__
     -- <|> reserved "bool" *> pure TypeBool
 
