@@ -11,7 +11,7 @@ module Ast (
 
 type Identifier = String
 
-data Type = TypeInfered | TypeInt | TypeParametric Identifier deriving (Show, Eq)
+data Type = TypeInfered | TypeInt | TypeParametric Identifier | TypeFunction Type Type deriving (Show, Eq)
 
 data Module = Module [Definition] deriving (Eq, Show)
 

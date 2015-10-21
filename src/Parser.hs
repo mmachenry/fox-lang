@@ -108,9 +108,14 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-    reserved "int" *> pure TypeInt
-    <|> TypeParametric <$> identifier
+        try (TypeFunction <$> type__ <*> (reserved "->" *> type_))
+    <|> type__
     -- <|> reserved "bool" *> pure TypeBool
+
+type__ :: Parser Type
+type__ =
+        reserved "int" *> pure TypeInt
+    <|> TypeParametric <$> identifier
 
 pattern :: Parser Pattern
 pattern =
