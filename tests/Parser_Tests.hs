@@ -132,9 +132,16 @@ main = runTestTT $ TestList [
             
     "Function with parametric type annotations" ~:
         readModule "add (x : a, y : a) { x + y }" ~?= Module [
-	    Definition "add" [Parameter "x" (TypeParametric "a"), Parameter "y" (TypeParametric "a")] [
-	        ExprBinOp Add (ExprVar "x") (ExprVar "y")]
-	],
+            Definition "add" [Parameter "x" (TypeParametric "a"), Parameter "y" (TypeParametric "a")] [
+                ExprBinOp Add (ExprVar "x") (ExprVar "y")]
+        ],
+
+    "apply: a higher-order function with type annotations" ~:
+        readModule "apply (f : a -> b, x : a) { f(x) }" ~?= Module [
+            Definition "apply" [Parameter "f" (TypeFunction (TypeParametric "a") (TypeParametric "b")),
+                                Parameter "x" (TypeParametric "a")]
+                [ExprApp (ExprVar "f") [(ExprVar "x")]]
+        ],
 
     "Twice: a higher-order function with type annotation" ~:
         readModule "twice (f : a -> partial a, x : a) { f(f(x)) }" ~?= Module [
