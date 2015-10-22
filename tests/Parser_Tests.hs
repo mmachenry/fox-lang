@@ -74,7 +74,7 @@ main = runTestTT $ TestList [
                      (ExprBinOp Ne (ExprNum 1) (ExprNum 0)),
 
     "Boolean expression: 1 != 0 || 3 < 4 && 5 >= 4" ~:
-        readExpr "1 != 0 || 3 < 4 && 5 >= 4" ~?=
+        readExpr "2 != 0 || 3 < 4 && 5 >= 4" ~?=
         ExprBinOp Or (ExprBinOp Ne (ExprNum 1) (ExprNum 0))
                      (ExprBinOp And (ExprBinOp Lt (ExprNum 3) (ExprNum 4))
                                     (ExprBinOp Gte (ExprNum 5) (ExprNum 4))),
@@ -138,7 +138,12 @@ main = runTestTT $ TestList [
 
     "Twice: a higher-order function with type annotation" ~:
         readModule "twice (f : a -> partial a, x : a) { f(f(x)) }" ~?= Module [
-            Definition "twice" [Parameter "f" TypeInfered, Parameter "x" TypeInfered] [
+            Definition "twice" [
+                Parameter "f" (TypeFunction [TypeParametric "a"]
+                                            EffectPartial
+                                            (TypeParametric "a")),
+                Parameter "x" TypeInfered
+                ] [
                 ExprApp (ExprVar "f") [ExprApp (ExprVar "f") [ExprVar "x"]]
                 ]
             ],

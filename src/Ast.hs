@@ -7,11 +7,24 @@ module Ast (
     BinOp(..),
     UnaryOp(..),
     Type(..),
+    Effect(..),
     ) where
 
 type Identifier = String
 
-data Type = TypeInfered | TypeInt | TypeParametric Identifier deriving (Show, Eq)
+data Type =
+      TypeInfered
+    | TypeInt
+    | TypeParametric Identifier
+    | TypeFunction [Type] Effect Type
+    deriving (Show, Eq)
+
+data Effect =
+      EffectTotal
+    | EffectPartial
+    | EffectDivergent
+    | EffectPure
+    deriving (Show, Eq)
 
 data Module = Module [Definition] deriving (Eq, Show)
 
