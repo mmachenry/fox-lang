@@ -138,7 +138,7 @@ main = runTestTT $ TestList [
 
     "apply: a higher-order function with type annotations" ~:
         readModule "apply (f : a -> b, x : a) { f(x) }" ~?= Module [
-            Definition "apply" [Parameter "f" (TypeFunction (TypeParametric "a") (TypeParametric "b")),
+            Definition "apply" [Parameter "f" (TypeFunction (TypeParametric "a")EffectInfered (TypeParametric "b")),
                                 Parameter "x" (TypeParametric "a")]
                 [ExprApp (ExprVar "f") [(ExprVar "x")]]
         ],

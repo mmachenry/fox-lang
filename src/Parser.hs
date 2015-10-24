@@ -107,7 +107,10 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-        try (TypeFunction <$> type__ <*> (reserved "->" *> type_))
+        --try (TypeFunction <$> type__ <*> (reserved "->" *> type_))
+        try (TypeFunction <$> (parens (commaSep type__))
+                          <*> effect
+                          <*> (reserved "->" *> type_))
     <|> type__
     -- <|> reserved "bool" *> pure TypeBool
 
@@ -115,6 +118,14 @@ type__ :: Parser Type
 type__ =
         reserved "int" *> pure TypeInt
     <|> TypeParametric <$> identifier
+
+effect :: Parser Effect
+effect = option EffectInfered (
+        reserved "pure" *> pure EffectPure
+    <|> reserved "partial" *> pure EffectPartial
+    <|> reserved "divergent" *> pure EffectDivergent
+    <|> reserved "total" *> pure EffectTotal
+    )
 
 pattern :: Parser Pattern
 pattern =

@@ -20,7 +20,8 @@ data Type =
     deriving (Show, Eq)
 
 data Effect =
-      EffectTotal
+      EffectInfered
+    | EffectTotal
     | EffectPartial
     | EffectDivergent
     | EffectPure
