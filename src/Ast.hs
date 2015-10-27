@@ -15,7 +15,8 @@ type Identifier = String
 data Type =
       TypeInfered
     | TypeInt
-    | TypeParametric Identifier
+    | TypeForAll Identifier Type
+    | TypeVar Identifier
     | TypeFunction [Type] Effect Type
     deriving (Show, Eq)
 

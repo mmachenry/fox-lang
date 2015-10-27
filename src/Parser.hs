@@ -117,7 +117,7 @@ type_ =
 type__ :: Parser Type
 type__ =
         reserved "int" *> pure TypeInt
-    <|> TypeParametric <$> identifier
+    <|> TypeVar <$> identifier
 
 effect :: Parser Effect
 effect = option EffectInfered (

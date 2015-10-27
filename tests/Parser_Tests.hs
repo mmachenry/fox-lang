@@ -132,23 +132,23 @@ main = runTestTT $ TestList [
             
     "Function with parametric type annotations" ~:
         readModule "add (x : a, y : a) { x + y }" ~?= Module [
-            Definition "add" [Parameter "x" (TypeParametric "a"), Parameter "y" (TypeParametric "a")] [
+            Definition "add" [Parameter "x" (TypeVar "a"), Parameter "y" (TypeVar "a")] [
                 ExprBinOp Add (ExprVar "x") (ExprVar "y")]
         ],
 
     "apply: a higher-order function with type annotations" ~:
         readModule "apply (f : a -> b, x : a) { f(x) }" ~?= Module [
-            Definition "apply" [Parameter "f" (TypeFunction [TypeParametric "a"]EffectInfered (TypeParametric "b")),
-                                Parameter "x" (TypeParametric "a")]
+            Definition "apply" [Parameter "f" (TypeFunction [TypeVar "a"]EffectInfered (TypeVar "b")),
+                                Parameter "x" (TypeVar "a")]
                 [ExprApp (ExprVar "f") [(ExprVar "x")]]
         ],
 
     "Twice: a higher-order function with type annotation" ~:
         readModule "twice (f : a -> partial a, x : a) { f(f(x)) }" ~?= Module [
             Definition "twice" [
-                Parameter "f" (TypeFunction [TypeParametric "a"]
+                Parameter "f" (TypeFunction [TypeVar "a"]
                                             EffectPartial
-                                            (TypeParametric "a")),
+                                            (TypeVar "a")),
                 Parameter "x" TypeInfered
                 ] [
                 ExprApp (ExprVar "f") [ExprApp (ExprVar "f") [ExprVar "x"]]
