@@ -14,7 +14,7 @@ type Identifier = String
 
 data Type =
       TypeInfered
-    | TypeInt
+    | TypeIdentifier Identifier
     | TypeForAll Identifier Type
     | TypeVar Identifier
     | TypeFunction [Type] Effect Type
@@ -64,7 +64,7 @@ data Expr =
     -- Literal
     | ExprNum Integer
     | ExprTuple [Expr]
-    | ExprNil -- likely this is just defined in language as an AST
+
     deriving (Show, Eq)
 
 data BinOp =

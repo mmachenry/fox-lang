@@ -107,16 +107,19 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-        try (TypeFunction <$> ((parens (commaSep type_)) <|> fmap pure type__)
+        try (TypeFunction <$> ((parens (commaSep type_)) <|> fmap pure nonArrowType)
                           <*> (reserved "->" *> effect)
                           <*> type_)
-    <|> type__
-    -- <|> reserved "bool" *> pure TypeBool
+    <|> nonArrowType
 
-type__ :: Parser Type
-type__ =
-        reserved "int" *> pure TypeInt
-    <|> TypeVar <$> identifier
+nonArrowType :: Parser Type
+nonArrowType = typeVar <|> typeIdentifier
+
+typeVar :: Parser Type
+typeVar = TypeVar <$> (reservedOp "'" *> identifier)
+
+typeIdentifier :: Parser Type
+typeIdentifier = TypeIdentifier <$> identifier
 
 effect :: Parser Effect
 effect = option EffectInfered (
