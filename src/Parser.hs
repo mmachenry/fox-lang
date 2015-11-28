@@ -107,10 +107,9 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-        --try (TypeFunction <$> type__ <*> (reserved "->" *> type_))
-        try (TypeFunction <$> (parens (commaSep type__))
-                          <*> effect
-                          <*> (reserved "->" *> type_))
+        try (TypeFunction <$> ((parens (commaSep type_)) <|> fmap pure type__)
+                          <*> (reserved "->" *> effect)
+                          <*> type_)
     <|> type__
     -- <|> reserved "bool" *> pure TypeBool
 

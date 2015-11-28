@@ -74,7 +74,7 @@ main = runTestTT $ TestList [
                      (ExprBinOp Ne (ExprNum 1) (ExprNum 0)),
 
     "Boolean expression: 1 != 0 || 3 < 4 && 5 >= 4" ~:
-        readExpr "2 != 0 || 3 < 4 && 5 >= 4" ~?=
+        readExpr "1 != 0 || 3 < 4 && 5 >= 4" ~?=
         ExprBinOp Or (ExprBinOp Ne (ExprNum 1) (ExprNum 0))
                      (ExprBinOp And (ExprBinOp Lt (ExprNum 3) (ExprNum 4))
                                     (ExprBinOp Gte (ExprNum 5) (ExprNum 4))),
@@ -138,7 +138,7 @@ main = runTestTT $ TestList [
 
     "apply: a higher-order function with type annotations" ~:
         readModule "apply (f : a -> b, x : a) { f(x) }" ~?= Module [
-            Definition "apply" [Parameter "f" (TypeFunction [TypeVar "a"]EffectInfered (TypeVar "b")),
+            Definition "apply" [Parameter "f" (TypeFunction [TypeVar "a"] EffectInfered (TypeVar "b")),
                                 Parameter "x" (TypeVar "a")]
                 [ExprApp (ExprVar "f") [(ExprVar "x")]]
         ],
@@ -149,7 +149,7 @@ main = runTestTT $ TestList [
                 Parameter "f" (TypeFunction [TypeVar "a"]
                                             EffectPartial
                                             (TypeVar "a")),
-                Parameter "x" TypeInfered
+                Parameter "x" (TypeVar "a")
                 ] [
                 ExprApp (ExprVar "f") [ExprApp (ExprVar "f") [ExprVar "x"]]
                 ]
