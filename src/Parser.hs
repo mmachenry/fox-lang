@@ -1,10 +1,11 @@
 module Parser (readStr, definitions, expr, pattern, statement) where
 
 import Ast
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding ((<|>), many)
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
+import Control.Applicative
 
 readStr :: Parser a -> String -> Either ParseError a
 readStr parser = parse (allOf parser) "fox"
@@ -24,6 +25,8 @@ lexer = Token.makeTokenParser $ emptyDef {
         ++ concatMap (fmap fst) binaryOperators
         ++ concatMap (fmap fst) unaryOperators,
     Token.reservedNames = [
+        "true", "false",
+        "pure", "partial", "total", "divergent",
         "if", "then", "else",
         "match", "repeat",
         "run"]
@@ -107,7 +110,7 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-        try (TypeFunction <$> ((parens (commaSep type_)) <|> fmap pure nonArrowType)
+        try (TypeFunction <$> (parens (commaSep type_) <|> fmap pure nonArrowType)
                           <*> (reservedOp "->" *> effect)
                           <*> type_)
     <|> nonArrowType
@@ -140,10 +143,10 @@ expr =
     <|> formula
 
 ifThenElse :: Parser Expr
-ifThenElse = ExprIfThenElse
-    <$> (reserved "if" *> expr)
-    <*> (reserved "then" *> expr)
-    <*> (reserved "else" *> expr)
+ifThenElse = liftA3 ExprIfThenElse
+    (reserved "if" *> expr)
+    (reserved "then" *> expr)
+    (reserved "else" *> expr)
 
 match :: Parser Expr
 match = ExprMatch
@@ -183,6 +186,7 @@ atom :: Parser Expr
 atom =
         variable
     <|> number
+    <|> boolean
     <|> parens expr
     <|> ExprStatementBlock <$> statementBlock
     <?> "atom"
@@ -192,4 +196,9 @@ variable = ExprVar <$> identifier
 
 number :: Parser Expr
 number = (ExprNum . fromIntegral) <$> natural
+
+boolean :: Parser Expr
+boolean = fmap ExprBool (
+        (reserved "true" *> pure True)
+    <|> (reserved "false" *> pure False))
 

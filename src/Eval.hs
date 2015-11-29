@@ -28,7 +28,12 @@ evalExpr env ast = case ast of
     ExprEffectBind id expr -> undefined
     ExprRun exprs -> undefined
 
-    ExprIfThenElse test consequent alternate -> undefined
+    ExprIfThenElse test consequent alternate -> do
+        testValue <- evalExpr env test
+        case testValue of
+            ValBool True -> evalExpr env consequent
+            ValBool False -> evalExpr env alternate
+            _ -> error "Dynamic type error should not be possible."
     ExprMatch expr cases -> undefined
     ExprRepeat numTimes exprs -> undefined
     ExprStatementBlock exprs -> undefined
@@ -40,4 +45,5 @@ evalExpr env ast = case ast of
     ExprWrite lhs rhs -> undefined
 
     ExprNum integer -> Right $ ValNum integer
+    ExprBool bool -> Right $ ValBool bool
 
