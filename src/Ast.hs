@@ -63,7 +63,6 @@ data Expr =
 
     -- Literal
     | ExprNum Integer
-    | ExprTuple [Expr]
 
     deriving (Show, Eq)
 
