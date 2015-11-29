@@ -72,8 +72,10 @@ data BinOp =
       Add | Sub | Mul | Div
     | BoolEq | Ne | Gt | Lt | Gte | Lte
     | And | Or
+    -- FIXME Should not have assign operator and aso ExprWrite
     | Assign
     deriving (Show, Eq)
 
+-- FIXME Should not have dereference op and also ExprRead
 data UnaryOp = Dereference deriving (Show, Eq)
 
