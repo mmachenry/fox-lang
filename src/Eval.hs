@@ -2,20 +2,26 @@ module Eval (evalModule, evalExpr, Value(..), Error(..)) where
 
 import Ast
 
-data Error = Error String
+type Env = [(Identifier, Value)]
+
+data Error =
+      ErrorGeneric String
     deriving (Eq, Show)
 
 data Value =
       ValNum Integer
     | ValBool Bool
+    | ValClosure Expr Env
     deriving (Eq, Show)
 
 evalModule :: Module -> Either Error Value
 evalModule (Module definitions) = undefined
 
-evalExpr :: Expr -> Either Error Value
-evalExpr ast = case ast of
-    ExprVar id -> undefined
+evalExpr :: Env -> Expr -> Either Error Value
+evalExpr env ast = case ast of
+    ExprVar id -> case lookup id env of
+        Just val -> Right val
+        Nothing -> error "This should not happen."
     ExprApp func args -> undefined
     ExprAbs params body -> undefined
     ExprLetBind id expr -> undefined
