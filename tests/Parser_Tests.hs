@@ -83,32 +83,32 @@ main = runTestTT $ TestList [
     -- a static pass of the AST.
     "Let at the end of a block" ~:
         expectRight definitions "f(x) { x = 5 }" ~?= Module [
-            Definition "f" [Parameter "x" TypeInfered]
+            Definition "f" [Parameter "x" TypeInferred]
                 [ExprLetBind "x" (ExprNum 5)]],
 
     "Simple module" ~:
         readModule "square (x) { x * x }" ~?=
             Module [
-                Definition "square" [Parameter "x" TypeInfered]
+                Definition "square" [Parameter "x" TypeInferred]
                            [ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
             ],
 
     "Two argument function" ~:
         readModule "add (x,y) { x + y }" ~?=
             Module [
-                Definition "add" [Parameter "x" TypeInfered,
-                                  Parameter "y" TypeInfered]
+                Definition "add" [Parameter "x" TypeInferred,
+                                  Parameter "y" TypeInferred]
                            [ExprBinOp Add (ExprVar "x") (ExprVar "y")]
             ],
 
     "Two definitions in a module" ~:
         readModule "add (x,y) { x + y } mul (x,y) { x * y }" ~?=
             Module [
-                Definition "add" [Parameter "x" TypeInfered,
-                                  Parameter "y" TypeInfered]
+                Definition "add" [Parameter "x" TypeInferred,
+                                  Parameter "y" TypeInferred]
                            [ExprBinOp Add (ExprVar "x") (ExprVar "y")],
-                Definition "mul" [Parameter "x" TypeInfered,
-                                  Parameter "y" TypeInfered]
+                Definition "mul" [Parameter "x" TypeInferred,
+                                  Parameter "y" TypeInferred]
                            [ExprBinOp Mul (ExprVar "x") (ExprVar "y")]
             ],
 
@@ -138,7 +138,7 @@ main = runTestTT $ TestList [
 
     "apply: a higher-order function with type annotations" ~:
         readModule "apply (f : 'a -> 'b, x : 'a) { f(x) }" ~?= Module [
-            Definition "apply" [Parameter "f" (TypeFunction [TypeVar "a"] EffectInfered (TypeVar "b")),
+            Definition "apply" [Parameter "f" (TypeFunction [TypeVar "a"] EffectInferred (TypeVar "b")),
                                 Parameter "x" (TypeVar "a")]
                 [ExprApp (ExprVar "f") [(ExprVar "x")]]
         ],
@@ -164,7 +164,7 @@ main = runTestTT $ TestList [
 
     "Fib example from paper" ~:
         readModule fibExample ~?= Module [
-            Definition "fib" [Parameter "n" TypeInfered] [
+            Definition "fib" [Parameter "n" TypeInferred] [
                 ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
                 ExprEffectBind "f2" (ExprApp (ExprVar "newref") [ExprNum 1]),
                 ExprRepeat (ExprBinOp Sub (ExprVar "n") (ExprNum 1)) [
@@ -187,8 +187,8 @@ main = runTestTT $ TestList [
 
     "Map example from paper" ~:
         readModule mapExample ~?= Module [
-            Definition "map" [Parameter "f" TypeInfered,
-                              Parameter "xs" TypeInfered] [
+            Definition "map" [Parameter "f" TypeInferred,
+                              Parameter "xs" TypeInferred] [
                 ExprMatch (ExprVar "xs") [
                     (PatternApp "cons" [PatternId "x",PatternId "xx"],
                         ExprStatementBlock [

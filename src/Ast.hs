@@ -13,7 +13,7 @@ module Ast (
 type Identifier = String
 
 data Type =
-      TypeInfered
+      TypeInferred
     | TypeIdentifier Identifier
     | TypeForAll Identifier Type
     | TypeVar Identifier
@@ -21,7 +21,7 @@ data Type =
     deriving (Show, Eq)
 
 data Effect =
-      EffectInfered
+      EffectInferred
     | EffectTotal
     | EffectPartial
     | EffectDivergent
