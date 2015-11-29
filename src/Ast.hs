@@ -8,6 +8,7 @@ module Ast (
     UnaryOp(..),
     Type(..),
     Effect(..),
+    Identifier
     ) where
 
 type Identifier = String
