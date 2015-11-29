@@ -1,12 +1,14 @@
-module Eval (eval) where
+module Eval (evalModule, evalExpr, Value(..), Error(..)) where
 
 import Ast
 
 data Error = Error String
+    deriving (Eq, Show)
 
 data Value =
-      ValInt Int
+      ValNum Integer
     | ValBool Bool
+    deriving (Eq, Show)
 
 evalModule :: Module -> Either Error Value
 evalModule (Module definitions) = undefined
@@ -31,5 +33,5 @@ evalExpr ast = case ast of
     ExprRead expr -> undefined
     ExprWrite lhs rhs -> undefined
 
-    ExprNum integer -> ValInt integer
+    ExprNum integer -> Right $ ValNum integer
 
