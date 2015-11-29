@@ -103,12 +103,12 @@ effectBind = ExprEffectBind <$> identifier <* reservedOp "<-" <*> expr
 parameter :: Parser Parameter
 parameter = Parameter
     <$> identifier
-    <*> option TypeInfered (reservedOp ":" *> type_)
+    <*> option TypeInferred (reservedOp ":" *> type_)
 
 type_ :: Parser Type
 type_ =
         try (TypeFunction <$> ((parens (commaSep type_)) <|> fmap pure nonArrowType)
-                          <*> (reserved "->" *> effect)
+                          <*> (reservedOp "->" *> effect)
                           <*> type_)
     <|> nonArrowType
 
@@ -122,7 +122,7 @@ typeIdentifier :: Parser Type
 typeIdentifier = TypeIdentifier <$> identifier
 
 effect :: Parser Effect
-effect = option EffectInfered (
+effect = option EffectInferred (
         reserved "pure" *> pure EffectPure
     <|> reserved "partial" *> pure EffectPartial
     <|> reserved "divergent" *> pure EffectDivergent
