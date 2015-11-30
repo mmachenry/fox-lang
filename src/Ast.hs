@@ -33,7 +33,10 @@ data Module = Module [Definition] deriving (Eq, Show)
 
 data Definition = Definition Identifier [Parameter] [Expr] deriving (Eq, Show)
 
-data Parameter = Parameter Identifier Type deriving (Eq, Show)
+data Parameter = Parameter {
+    parameterIdentifier :: Identifier,
+    parameterType :: Type
+    } deriving (Eq, Show)
 
 data Pattern =
       PatternId Identifier
