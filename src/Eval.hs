@@ -21,7 +21,7 @@ evalExpr :: Env -> Expr -> Either Error Value
 evalExpr env ast = case ast of
     ExprVar id -> case lookup id env of
         Just val -> Right val
-        Nothing -> error "This should not happen."
+        Nothing -> Left $ ErrorGeneric "Reference to an unbound identifier."
 
     ExprApp func args -> do
         evaledFunc <- evalExpr env func
@@ -31,8 +31,8 @@ evalExpr env ast = case ast of
                 then do evaledArgs <- sequence $ fmap (evalExpr env) args
                         let newEnv = zip (map parameterIdentifier params) evaledArgs
                         evalExpr newEnv body
-                else error "Mismatch number of parameters."
-            _ -> error "Applying a non-function."
+                else Left $ ErrorGeneric "Mismatch number of parameters."
+            _ -> Left $ ErrorGeneric "Applying a non-function."
 
     ExprAbs params body -> Right $ ValClosure env params body
     ExprLetBind id expr -> undefined
@@ -44,7 +44,8 @@ evalExpr env ast = case ast of
         case testValue of
             ValBool True -> evalExpr env consequent
             ValBool False -> evalExpr env alternate
-            _ -> error "Dynamic type error should not be possible."
+            _ -> Left $ ErrorGeneric "Condition of IF expression expected a boolean."
+
     ExprMatch expr cases -> undefined
     ExprRepeat numTimes exprs -> undefined
     ExprStatementBlock exprs -> undefined
