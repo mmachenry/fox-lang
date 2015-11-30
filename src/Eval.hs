@@ -11,7 +11,7 @@ data Error =
 data Value =
       ValNum Integer
     | ValBool Bool
-    | ValClosure Expr Env
+    | ValClosure Env [Parameter] Expr
     deriving (Eq, Show)
 
 evalModule :: Module -> Either Error Value
@@ -22,8 +22,19 @@ evalExpr env ast = case ast of
     ExprVar id -> case lookup id env of
         Just val -> Right val
         Nothing -> error "This should not happen."
-    ExprApp func args -> undefined
-    ExprAbs params body -> undefined
+
+    ExprApp func args -> do
+        evaledFunc <- evalExpr env func
+        case evaledFunc of
+            ValClosure closureEnv params body ->
+                if length params == length args
+                then do evaledArgs <- sequence $ fmap (evalExpr env) args
+                        let newEnv = zip (map parameterIdentifier params) evaledArgs
+                        evalExpr newEnv body
+                else error "Mismatch number of parameters."
+            _ -> error "Applying a non-function."
+
+    ExprAbs params body -> Right $ ValClosure env params body
     ExprLetBind id expr -> undefined
     ExprEffectBind id expr -> undefined
     ExprRun exprs -> undefined
