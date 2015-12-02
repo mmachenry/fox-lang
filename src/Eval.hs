@@ -1,25 +1,15 @@
 module Eval (evalModule, evalExpr, Value(..), Error(..)) where
 
 import Ast
-
-type Env = [(Identifier, Value)]
-
-data Error =
-      ErrorGeneric String
-    deriving (Eq, Show)
-
-data Value =
-      ValNum Integer
-    | ValBool Bool
-    | ValClosure Env [Parameter] Expr
-    deriving (Eq, Show)
+import Primitives
+import Control.Applicative
 
 evalModule :: Module -> Either Error Value
 evalModule (Module definitions) = undefined
 
 evalExpr :: Env -> Expr -> Either Error Value
 evalExpr env ast = case ast of
-    ExprVar id -> case lookup id env of
+    ExprVar id -> case lookup id env <|> lookup id primitives of
         Just val -> Right val
         Nothing -> Left $ ErrorGeneric "Reference to an unbound identifier."
 
@@ -29,9 +19,13 @@ evalExpr env ast = case ast of
             ValClosure closureEnv params body ->
                 if length params == length args
                 then do evaledArgs <- sequence $ fmap (evalExpr env) args
-                        let newEnv = zip (map parameterIdentifier params) evaledArgs
+                        let newEnv = zip (map parameterIdentifier params)
+                                         evaledArgs
                         evalExpr newEnv body
                 else Left $ ErrorGeneric "Mismatch number of parameters."
+            ValPrimitive _ prim -> do
+                evaledArgs <- sequence $ fmap (evalExpr env) args
+                prim evaledArgs
             _ -> Left $ ErrorGeneric "Applying a non-function."
 
     ExprAbs params body -> Right $ ValClosure env params body
