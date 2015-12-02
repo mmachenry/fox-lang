@@ -8,10 +8,43 @@ module Ast (
     UnaryOp(..),
     Type(..),
     Effect(..),
-    Identifier
+    Identifier,
+    Value(..),
+    Error(..),
+    Env
     ) where
 
+data Value =
+      ValNum Integer
+    | ValBool Bool
+    | ValClosure Env [Parameter] Expr
+    | ValPrimitive String ([Value] -> Either Error Value)
+
+instance Show Value where
+    show (ValNum i) = show i
+    show (ValBool b) = show b
+    show (ValClosure _ _ _) = "<func>"
+    show (ValPrimitive name _) = "<primitive:" ++ name ++ ">"
+
+instance Eq Value where
+    (ValNum i1) == (ValNum i2) = i1 == i2
+    (ValBool b1) == (ValBool b2) = b1 == b2
+    (ValClosure _ _ _) == (ValClosure _ _ _) = False
+    (ValPrimitive name1 _) == (ValPrimitive name2 _) = name1 == name2
+    _ == _ = False
+
+data Error =
+      ErrorGeneric String
+    deriving (Eq, Show)
+
+type Env = [(Identifier, Value)]
+
 type Identifier = String
+
+data Parameter = Parameter {
+    parameterIdentifier :: Identifier,
+    parameterType :: Type
+    } deriving (Eq, Show)
 
 data Type =
       TypeInferred
@@ -32,11 +65,6 @@ data Effect =
 data Module = Module [Definition] deriving (Eq, Show)
 
 data Definition = Definition Identifier [Parameter] [Expr] deriving (Eq, Show)
-
-data Parameter = Parameter {
-    parameterIdentifier :: Identifier,
-    parameterType :: Type
-    } deriving (Eq, Show)
 
 data Pattern =
       PatternId Identifier
