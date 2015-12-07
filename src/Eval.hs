@@ -29,8 +29,9 @@ evalExpr env ast = case ast of
             _ -> Left $ ErrorGeneric "Applying a non-function."
 
     ExprAbs params body -> Right $ ValClosure env params body
-    ExprLetBind id expr -> undefined
-    ExprEffectBind id expr -> undefined
+    ExprLetBind id expr body -> undefined
+    ExprEffectBind id expr body -> undefined
+    ExprCompound expr1 expr2 -> undefined
     ExprRun exprs -> undefined
 
     ExprIfThenElse test consequent alternate -> do
@@ -42,7 +43,6 @@ evalExpr env ast = case ast of
 
     ExprMatch expr cases -> undefined
     ExprRepeat numTimes exprs -> undefined
-    ExprStatementBlock exprs -> undefined
     ExprBinOp binOp lhs rhs -> undefined
     ExprUnaryOp unaryOp operand -> undefined
 

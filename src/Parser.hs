@@ -1,4 +1,4 @@
-module Parser (readStr, definitions, expr, pattern, statement) where
+module Parser (readStr, definitions, expr, pattern) where
 
 import Ast
 import Text.ParserCombinators.Parsec hiding ((<|>), many)
@@ -83,25 +83,30 @@ definition :: Parser Definition
 definition = Definition
     <$> identifier
     <*> parens (commaSep parameter)
-    <*> statementBlock
+    <*> manyExpr
 
-statementBlock :: Parser [Expr]
-statementBlock = braces (semiSep statement)
-
-statement :: Parser Expr
-statement =
-        try letBind
-    <|> try effectBind
-    <|> match
-    <|> repeat_
-    <|> run
-    <|> expr
+manyExpr :: Parser Expr
+manyExpr = letBind <|> effectBind <|> compoundExpr
 
 letBind :: Parser Expr
-letBind = ExprLetBind <$> identifier <* reservedOp "=" <*> expr
+letBind = ExprLetBind
+    <$> try (identifier <* reservedOp "=")
+    <*> (expr <* reservedOp ";")
+    <*> manyExpr
 
 effectBind :: Parser Expr
-effectBind = ExprEffectBind <$> identifier <* reservedOp "<-" <*> expr
+effectBind = ExprEffectBind
+    <$> try (identifier <* reservedOp "<-")
+    <*> (expr <* reservedOp ";")
+    <*> manyExpr
+
+compoundExpr :: Parser Expr
+compoundExpr = do
+    expr1 <- expr
+    rest <- fmap Just (reservedOp ";" *> manyExpr) <|> pure Nothing
+    case rest of
+        Just otherExprs -> pure $ ExprCompound expr1 otherExprs
+        Nothing -> pure expr1
 
 parameter :: Parser Parameter
 parameter = Parameter
@@ -154,15 +159,15 @@ match = ExprMatch
     <*> braces (Token.semiSep1 lexer matchClause)
 
 matchClause :: Parser (Pattern, Expr)
-matchClause = (,) <$> pattern <*> (reservedOp "->" *> statement)
+matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
 
 repeat_ :: Parser Expr
 repeat_ = ExprRepeat
     <$> (reserved "repeat" *> parens expr)
-    <*> statementBlock
+    <*> (braces manyExpr)
 
 run :: Parser Expr
-run = ExprRun <$> (reserved "run" *> braces (semiSep expr))
+run = ExprRun <$> (reserved "run" *> braces manyExpr)
 
 formula :: Parser Expr
 formula = buildExpressionParser table app <?> "formula"
@@ -188,7 +193,7 @@ atom =
     <|> number
     <|> boolean
     <|> parens expr
-    <|> ExprStatementBlock <$> statementBlock
+    <|> braces manyExpr
     <?> "atom"
 
 variable :: Parser Expr
