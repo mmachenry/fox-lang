@@ -15,7 +15,8 @@ module Ast (
     ) where
 
 data Value =
-      ValNum Integer
+      ValUnit
+    | ValNum Integer
     | ValBool Bool
     | ValClosure Env [Parameter] Expr
     | ValPrimitive String ([Value] -> Either Error Value)

@@ -69,5 +69,13 @@ main = runTestTT $ TestList [
                         (ExprWrite (ExprVar "x") (ExprAlloc (ExprNum 413)))
                         (ExprRead (ExprVar "x"))))
             ) ~?= Right (ValNum 413)
+
+    , "Let expression { x = 413; x} " ~:
+        evalExpr [] (ExprLetBind "x" (ExprNum 413) (ExprVar "x")) ~?= Right (ValNum 413)
+
+    , "Compound expression { print 2; 413 }" ~:
+        evalExpr [] (ExprCompound (ExprApp (ExprVar "print") [ExprNum 2])
+                                  (ExprNum 413))
+            ~?= Right (ValNum 413)
     ]
 
