@@ -79,18 +79,11 @@ main = runTestTT $ TestList [
                      (ExprBinOp And (ExprBinOp Lt (ExprNum 3) (ExprNum 4))
                                     (ExprBinOp Gte (ExprNum 5) (ExprNum 4))),
 
-    -- I'm undecided on whether this should be a parser error or discovered in
-    -- a static pass of the AST.
-    "Let at the end of a block" ~:
-        expectRight definitions "f(x) { x = 5 }" ~?= Module [
-            Definition "f" [Parameter "x" TypeInferred]
-                [ExprLetBind "x" (ExprNum 5)]],
-
     "Simple module" ~:
         readModule "square (x) { x * x }" ~?=
             Module [
                 Definition "square" [Parameter "x" TypeInferred]
-                           [ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
+                           (ExprBinOp Mul (ExprVar "x") (ExprVar "x"))
             ],
 
     "Two argument function" ~:
@@ -98,7 +91,7 @@ main = runTestTT $ TestList [
             Module [
                 Definition "add" [Parameter "x" TypeInferred,
                                   Parameter "y" TypeInferred]
-                           [ExprBinOp Add (ExprVar "x") (ExprVar "y")]
+                           (ExprBinOp Add (ExprVar "x") (ExprVar "y"))
             ],
 
     "Two definitions in a module" ~:
@@ -106,10 +99,10 @@ main = runTestTT $ TestList [
             Module [
                 Definition "add" [Parameter "x" TypeInferred,
                                   Parameter "y" TypeInferred]
-                           [ExprBinOp Add (ExprVar "x") (ExprVar "y")],
+                           (ExprBinOp Add (ExprVar "x") (ExprVar "y")),
                 Definition "mul" [Parameter "x" TypeInferred,
                                   Parameter "y" TypeInferred]
-                           [ExprBinOp Mul (ExprVar "x") (ExprVar "y")]
+                           (ExprBinOp Mul (ExprVar "x") (ExprVar "y"))
             ],
 
     "Pattern with value constructor" ~:
@@ -119,28 +112,28 @@ main = runTestTT $ TestList [
     -- Examples from the paper:
     "One argument function with type annotation" ~:
         readModule "sqr (x : int) {x * x}" ~?= Module [
-            Definition "sqr" [Parameter "x" (TypeIdentifier "int")] [
-                ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
+            Definition "sqr" [Parameter "x" (TypeIdentifier "int")] (
+                ExprBinOp Mul (ExprVar "x") (ExprVar "x"))
         ],
             
     "Square function with a print statement" ~:
         readModule "sqr (x : int) {print (x); x * x }" ~?= Module [
-            Definition "sqr" [Parameter "x" (TypeIdentifier "int")] [
-                ExprApp (ExprVar "print") [(ExprVar "x")],
-                ExprBinOp Mul (ExprVar "x") (ExprVar "x")]
+            Definition "sqr" [Parameter "x" (TypeIdentifier "int")]
+                $ ExprCompound (ExprApp (ExprVar "print") [(ExprVar "x")])
+                              (ExprBinOp Mul (ExprVar "x") (ExprVar "x"))
         ],
             
     "Function with parametric type annotations" ~:
         readModule "add (x : 'a, y : 'a) { x + y }" ~?= Module [
-            Definition "add" [Parameter "x" (TypeVar "a"), Parameter "y" (TypeVar "a")] [
-                ExprBinOp Add (ExprVar "x") (ExprVar "y")]
+            Definition "add" [Parameter "x" (TypeVar "a"), Parameter "y" (TypeVar "a")] (
+                ExprBinOp Add (ExprVar "x") (ExprVar "y"))
         ],
 
     "apply: a higher-order function with type annotations" ~:
         readModule "apply (f : 'a -> 'b, x : 'a) { f(x) }" ~?= Module [
             Definition "apply" [Parameter "f" (TypeFunction [TypeVar "a"] EffectInferred (TypeVar "b")),
                                 Parameter "x" (TypeVar "a")]
-                [ExprApp (ExprVar "f") [(ExprVar "x")]]
+                (ExprApp (ExprVar "f") [(ExprVar "x")])
         ],
 
     "Twice: a higher-order function with type annotation" ~:
@@ -150,35 +143,36 @@ main = runTestTT $ TestList [
                                             EffectPartial
                                             (TypeVar "a")),
                 Parameter "x" (TypeVar "a")
-                ] [
-                ExprApp (ExprVar "f") [ExprApp (ExprVar "f") [ExprVar "x"]]
                 ]
+                (ExprApp (ExprVar "f") [ExprApp (ExprVar "f") [ExprVar "x"]])
             ],
 
     "Effect bind" ~:
-        expectRight statement "f1 <- newref (1)" ~?=
-            ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
+        expectRight expr "{ f1 <- newref (1); 1 }" ~?=
+            ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]) (ExprNum 1),
 
     "Dereference" ~:
         readExpr "!f1" ~?= ExprUnaryOp Dereference (ExprVar "f1"),
 
+{-
     "Fib example from paper" ~:
         readModule fibExample ~?= Module [
-            Definition "fib" [Parameter "n" TypeInferred] [
-                ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]),
-                ExprEffectBind "f2" (ExprApp (ExprVar "newref") [ExprNum 1]),
-                ExprRepeat (ExprBinOp Sub (ExprVar "n") (ExprNum 1)) [
-                    ExprEffectBind "sum" (ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1")) (ExprUnaryOp Dereference (ExprVar "f2"))),
-                    ExprBinOp Assign (ExprVar "f1") (ExprUnaryOp Dereference (ExprVar "f2")),
-                    ExprBinOp Assign (ExprVar "f2") (ExprVar "sum")
-                ],
-                ExprUnaryOp Dereference (ExprVar "f2")]],
+            Definition "fib" [Parameter "n" TypeInferred]
+                $ ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1])
+                $ ExprEffectBind "f2" (ExprApp (ExprVar "newref") [ExprNum 1])
+                $ (ExprRepeat (ExprBinOp Sub (ExprVar "n") (ExprNum 1))
+                    $ ExprEffectBind "sum" (ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1")) (ExprUnaryOp Dereference (ExprVar "f2")))
+                    $ ExprBinOp Assign (ExprVar "f1") (ExprUnaryOp Dereference (ExprVar "f2"))
+                    $ ExprBinOp Assign (ExprVar "f2") (ExprVar "sum"))
+                $ (ExprUnaryOp Dereference (ExprVar "f2"))]],
+-}
 
     "Sum line of fib" ~:
-        expectRight statement "sum <- !f1 + !f2" ~?=
+        expectRight expr "{ sum <- !f1 + !f2; 1 }" ~?=
             ExprEffectBind "sum"
                 (ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1"))
-                               (ExprUnaryOp Dereference (ExprVar "f2"))),
+                               (ExprUnaryOp Dereference (ExprVar "f2")))
+                (ExprNum 1),
 
     "Double deref" ~:
         expectRight expr "!f1 + !f2" ~?=
@@ -188,17 +182,15 @@ main = runTestTT $ TestList [
     "Map example from paper" ~:
         readModule mapExample ~?= Module [
             Definition "map" [Parameter "f" TypeInferred,
-                              Parameter "xs" TypeInferred] [
+                              Parameter "xs" TypeInferred] (
                 ExprMatch (ExprVar "xs") [
                     (PatternApp "cons" [PatternId "x",PatternId "xx"],
-                        ExprStatementBlock [
-                            ExprEffectBind "y" (ExprApp (ExprVar "f") [ExprVar "x"]),
-                            ExprEffectBind "yy" (ExprApp (ExprVar "map") [ExprVar "f",ExprVar "xx"]),
-                            ExprApp (ExprVar "cons") [ExprVar "y",ExprVar "yy"]
-                        ]),
+                        ExprEffectBind "y" (ExprApp (ExprVar "f") [ExprVar "x"])
+                            $ ExprEffectBind "yy" (ExprApp (ExprVar "map") [ExprVar "f",ExprVar "xx"])
+                            $ ExprApp (ExprVar "cons") [ExprVar "y",ExprVar "yy"]),
                     (PatternId "nil",ExprVar "nil")
                     ]
-                ]
+                )
             ]
     ]
 

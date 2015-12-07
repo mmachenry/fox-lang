@@ -64,7 +64,7 @@ data Effect =
 
 data Module = Module [Definition] deriving (Eq, Show)
 
-data Definition = Definition Identifier [Parameter] [Expr] deriving (Eq, Show)
+data Definition = Definition Identifier [Parameter] Expr deriving (Eq, Show)
 
 data Pattern =
       PatternId Identifier
@@ -76,15 +76,15 @@ data Expr =
       ExprVar Identifier
     | ExprApp Expr [Expr]
     | ExprAbs [Parameter] Expr
-    | ExprLetBind Identifier Expr
-    | ExprEffectBind Identifier Expr
-    | ExprRun [Expr]
+    | ExprLetBind Identifier Expr Expr
+    | ExprEffectBind Identifier Expr Expr
+    | ExprRun Expr
 
     -- Other assumed syntax
+    | ExprCompound Expr Expr
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
-    | ExprRepeat Expr [Expr]
-    | ExprStatementBlock [Expr]
+    | ExprRepeat Expr Expr
     | ExprBinOp BinOp Expr Expr
     | ExprUnaryOp UnaryOp Expr
 

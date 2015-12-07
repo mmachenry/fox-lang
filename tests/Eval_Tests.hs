@@ -63,10 +63,11 @@ main = runTestTT $ TestList [
 
     -- FIXME: Implement after decision of how to parse binding constructs
     , "Simple run, allocate, write, read block." ~:
-        evalExpr [] (ExprRun [
-                ExprEffectBind "x" (ExprAlloc (ExprNum 2)),
-                ExprWrite (ExprVar "x") (ExprAlloc (ExprNum 413)),
-                ExprRead (ExprVar "x")
-            ]) ~?= Right (ValNum 413)
+        evalExpr [] (ExprRun
+                (ExprEffectBind "x" (ExprAlloc (ExprNum 2))
+                    (ExprCompound
+                        (ExprWrite (ExprVar "x") (ExprAlloc (ExprNum 413)))
+                        (ExprRead (ExprVar "x"))))
+            ) ~?= Right (ValNum 413)
     ]
 
