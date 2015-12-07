@@ -11,7 +11,8 @@ evalExpr :: Env -> Expr -> Either Error Value
 evalExpr env ast = case ast of
     ExprVar id -> case lookup id env <|> lookup id primitives of
         Just val -> Right val
-        Nothing -> Left $ ErrorGeneric "Reference to an unbound identifier."
+        Nothing -> Left $ ErrorGeneric $
+                       "Reference to an unbound identifier: " ++ id
 
     ExprApp func args -> do
         evaledFunc <- evalExpr env func
@@ -29,9 +30,16 @@ evalExpr env ast = case ast of
             _ -> Left $ ErrorGeneric "Applying a non-function."
 
     ExprAbs params body -> Right $ ValClosure env params body
-    ExprLetBind id expr body -> undefined
+
+    ExprLetBind id expr body -> do
+        val <- evalExpr env expr
+        evalExpr ((id,val):env) body
+
     ExprEffectBind id expr body -> undefined
-    ExprCompound expr1 expr2 -> undefined
+
+    ExprCompound expr1 expr2 ->
+        evalExpr env expr1 >> evalExpr env expr2
+
     ExprRun exprs -> undefined
 
     ExprIfThenElse test consequent alternate -> do
