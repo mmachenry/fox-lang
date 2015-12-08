@@ -7,6 +7,15 @@ primitives = [
       ("unit", ValUnit)
     , ("true", ValBool True)
     , ("false", ValBool False)
+    , numericOperator "+" (+)
+    , numericOperator "-" (-) 
+    , numericOperator "*" (*) 
+    -- FIXME: For now, Fox only has integers and thus the divide operator
+    -- is integer division
+    , numericOperator "/" div
+
+    , booleanOperator "&&" (&&)
+    , booleanOperator "||" (||)
 
     -- For testing
     , ("test", ValPrimitive "test" (\args->case args of
@@ -19,7 +28,14 @@ primitives = [
         ))
     ]
 
-operators :: [(String, Value)]
-operators = [
-    ]
+numericOperator :: String -> (Integer -> Integer -> Integer) -> (String, Value)
+numericOperator name f =
+    (name, ValPrimitive name (\args->case args of
+        [ValNum lhs, ValNum rhs] -> Right $ ValNum (f lhs rhs)
+        _ -> Left $ ErrorGeneric "Incorrect aguments."))
 
+booleanOperator :: String -> (Bool -> Bool -> Bool) -> (String, Value)
+booleanOperator name f =
+    (name, ValPrimitive name (\args->case args of
+        [ValBool lhs, ValBool rhs] -> Right $ ValBool (f lhs rhs)
+        _ -> Left $ ErrorGeneric "Incorrect arguments."))
