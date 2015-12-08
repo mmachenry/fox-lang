@@ -22,16 +22,18 @@ data Value =
     | ValPrimitive String ([Value] -> Either Error Value)
 
 instance Show Value where
+    show ValUnit = "<unit>"
     show (ValNum i) = show i
     show (ValBool b) = show b
-    show (ValClosure _ _ _) = "<func>"
+    show ValClosure{} = "<func>"
     show (ValPrimitive name _) = "<primitive:" ++ name ++ ">"
 
 instance Eq Value where
     (ValNum i1) == (ValNum i2) = i1 == i2
     (ValBool b1) == (ValBool b2) = b1 == b2
-    (ValClosure _ _ _) == (ValClosure _ _ _) = False
+    ValClosure{} == ValClosure{} = False
     (ValPrimitive name1 _) == (ValPrimitive name2 _) = name1 == name2
+    ValUnit == ValUnit = True
     _ == _ = False
 
 data Error =
