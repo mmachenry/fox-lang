@@ -8,13 +8,16 @@ main = runTestTT $ TestList [
         evalExpr [] (ExprNum 413) ~?= Right (ValNum 413)
 
     , "Call test" ~:
-        evalExpr [] (ExprApp (ExprVar "test") [ExprNum 412]) ~?= Right (ValNum 413)
+        evalExpr [] (ExprApp (ExprVar "test") [ExprNum 412])
+            ~?= Right (ValNum 413)
 
     , "Bound vqriable" ~:
-        evalExpr [("i", ValNum 413)] (ExprVar "i") ~?= Right (ValNum 413)
+        evalExpr [("i", ValNum 413)] (ExprVar "i")
+            ~?= Right (ValNum 413)
 
     , "Apply a lambda to an argument" ~:
-        evalExpr [] (ExprApp (ExprAbs [Parameter "x" TypeInferred] (ExprVar "x")) [ExprNum 413])
+        evalExpr [] (ExprApp (ExprAbs [Parameter "x" TypeInferred]
+                             (ExprVar "x")) [ExprNum 413])
             ~?= Right (ValNum 413)
 
     , "Simple if expression with true test." ~:
@@ -26,52 +29,64 @@ main = runTestTT $ TestList [
             ~?= Right (ValNum 413)
 
     , "Add operator" ~:
-        evalExpr [] (ExprBinOp Add (ExprNum 412) (ExprNum 1)) ~?= Right (ValNum 413)
+        evalExpr [] (ExprApp (ExprVar "+") [ExprNum 412, ExprNum 1])
+            ~?= Right (ValNum 413)
 
     , "Sub operator" ~:
-        evalExpr [] (ExprBinOp Sub (ExprNum 414) (ExprNum 1)) ~?= Right (ValNum 413)
+        evalExpr [] (ExprApp (ExprVar "-") [ExprNum 414, ExprNum 1])
+            ~?= Right (ValNum 413)
 
     , "Mul operator" ~:
-        evalExpr [] (ExprBinOp Mul (ExprNum 7) (ExprNum 59)) ~?= Right (ValNum 413)
+        evalExpr [] (ExprApp (ExprVar "*") [ExprNum 7, ExprNum 59])
+            ~?= Right (ValNum 413)
 
     , "Div operator" ~:
-        evalExpr [] (ExprBinOp Div (ExprNum 826) (ExprNum 2)) ~?= Right (ValNum 413)
+        evalExpr [] (ExprApp (ExprVar "/") [ExprNum 826, ExprNum 2])
+            ~?= Right (ValNum 413)
 
     , "Equal operator" ~:
-        evalExpr [] (ExprBinOp BoolEq (ExprNum 413) (ExprNum 2)) ~?= Right (ValBool False)
+        evalExpr [] (ExprApp (ExprVar "==") [ExprNum 413, ExprNum 2])
+            ~?= Right (ValBool False)
 
     , "Not equal operator" ~:
-        evalExpr [] (ExprBinOp Ne (ExprNum 413) (ExprNum 2)) ~?= Right (ValBool True)
+        evalExpr [] (ExprApp (ExprVar "!=") [ExprNum 413, ExprNum 2])
+            ~?= Right (ValBool True)
 
     , "Gt operator" ~:
-        evalExpr [] (ExprBinOp Gt (ExprNum 413) (ExprNum 2)) ~?= Right (ValBool True)
+        evalExpr [] (ExprApp (ExprVar ">") [ExprNum 413, ExprNum 2])
+            ~?= Right (ValBool True)
 
     , "Lt operator" ~:
-        evalExpr [] (ExprBinOp Lt (ExprNum 413) (ExprNum 2)) ~?= Right (ValBool False)
+        evalExpr [] (ExprApp (ExprVar "<") [ExprNum 413, ExprNum 2])
+            ~?= Right (ValBool False)
 
     , "Gte operator" ~:
-        evalExpr [] (ExprBinOp Gte (ExprNum 413) (ExprNum 413)) ~?= Right (ValBool True)
+        evalExpr [] (ExprApp (ExprVar ">=") [ExprNum 413, ExprNum 413])
+            ~?= Right (ValBool True)
 
     , "Lte operator" ~:
-        evalExpr [] (ExprBinOp Lte (ExprNum 413) (ExprNum 2)) ~?= Right (ValBool False)
+        evalExpr [] (ExprApp (ExprVar "<=") [ExprNum 413, ExprNum 2])
+            ~?= Right (ValBool False)
 
     , "And operator" ~:
-        evalExpr [] (ExprBinOp And (ExprBool True) (ExprBool False)) ~?= Right (ValBool False)
+        evalExpr [] (ExprApp (ExprVar "&&") [ExprBool True, ExprBool False])
+            ~?= Right (ValBool False)
 
     , "And operator" ~:
-        evalExpr [] (ExprBinOp Or (ExprBool True) (ExprBool False)) ~?= Right (ValBool True)
+        evalExpr [] (ExprApp (ExprVar "||") [ExprBool True, ExprBool False])
+            ~?= Right (ValBool True)
 
-    -- FIXME: Implement after decision of how to parse binding constructs
     , "Simple run, allocate, write, read block." ~:
         evalExpr [] (ExprRun
-                (ExprEffectBind "x" (ExprAlloc (ExprNum 2))
+                (ExprEffectBind "x" (ExprApp (ExprVar "newref") [ExprNum 2])
                     (ExprCompound
-                        (ExprWrite (ExprVar "x") (ExprAlloc (ExprNum 413)))
-                        (ExprRead (ExprVar "x"))))
+                        (ExprApp (ExprVar ":=") [ExprVar "x", ExprNum 413])
+                        (ExprApp (ExprVar "!") [ExprVar "x"])))
             ) ~?= Right (ValNum 413)
 
     , "Let bind expression { x = 413; x} " ~:
-        evalExpr [] (ExprLetBind "x" (ExprNum 413) (ExprVar "x")) ~?= Right (ValNum 413)
+        evalExpr [] (ExprLetBind "x" (ExprNum 413) (ExprVar "x"))
+            ~?= Right (ValNum 413)
 
     , "Compound expression { print 2; 413 }" ~:
         evalExpr [] (ExprCompound (ExprApp (ExprVar "print") [ExprNum 2])

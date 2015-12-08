@@ -4,7 +4,12 @@ import Ast
 
 primitives :: [(String, Value)]
 primitives = [
-      ("test", ValPrimitive "test" (\args->case args of
+      ("unit", ValUnit)
+    , ("true", ValBool True)
+    , ("false", ValBool False)
+
+    -- For testing
+    , ("test", ValPrimitive "test" (\args->case args of
         [ValNum i] -> Right $ ValNum (i+1)
         _ -> Left $ ErrorGeneric "argument error."
         ))
