@@ -22,7 +22,7 @@ evalExpr env ast = case ast of
                 then do evaledArgs <- sequence $ fmap (evalExpr env) args
                         let newEnv = zip (map parameterIdentifier params)
                                          evaledArgs
-                        evalExpr newEnv body
+                        evalExpr (newEnv++closureEnv) body
                 else Left $ ErrorGeneric "Mismatch number of parameters."
             ValPrimitive _ prim -> do
                 evaledArgs <- sequence $ fmap (evalExpr env) args

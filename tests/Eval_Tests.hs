@@ -20,6 +20,15 @@ main = runTestTT $ TestList [
                              (ExprVar "x")) [ExprNum 413])
             ~?= Right (ValNum 413)
 
+    , "Apply curried lambda to two arguments" ~:
+        evalExpr [] (ExprApp (ExprApp
+                        (ExprAbs [Parameter "x" TypeInferred]
+                                 (ExprAbs [Parameter "y" TypeInferred]
+                                          (ExprApp (ExprVar "+") [ExprVar "x", ExprVar "y"])))
+                        [ExprNum 413]) 
+                        [ExprNum 0])
+            ~?= Right (ValNum 413)
+
     , "Simple if expression with true test." ~:
         evalExpr [] (ExprIfThenElse (ExprVar "true") (ExprNum 413) (ExprNum 2))
             ~?= Right (ValNum 413)
