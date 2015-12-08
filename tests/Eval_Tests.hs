@@ -70,12 +70,17 @@ main = runTestTT $ TestList [
                         (ExprRead (ExprVar "x"))))
             ) ~?= Right (ValNum 413)
 
-    , "Let expression { x = 413; x} " ~:
+    , "Let bind expression { x = 413; x} " ~:
         evalExpr [] (ExprLetBind "x" (ExprNum 413) (ExprVar "x")) ~?= Right (ValNum 413)
 
     , "Compound expression { print 2; 413 }" ~:
         evalExpr [] (ExprCompound (ExprApp (ExprVar "print") [ExprNum 2])
                                   (ExprNum 413))
             ~?= Right (ValNum 413)
+
+    , "Effect bind expression { u <- print 2; u }" ~:
+        evalExpr [] (ExprEffectBind "u" (ExprApp (ExprVar "print") [ExprNum 2])
+                        (ExprVar "u"))
+            ~?= Right ValUnit
     ]
 

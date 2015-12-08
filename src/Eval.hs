@@ -9,10 +9,10 @@ evalModule (Module definitions) = undefined
 
 evalExpr :: Env -> Expr -> Either Error Value
 evalExpr env ast = case ast of
-    ExprVar id -> case lookup id env <|> lookup id primitives of
+    ExprVar i -> case lookup i env <|> lookup i primitives of
         Just val -> Right val
         Nothing -> Left $ ErrorGeneric $
-                       "Reference to an unbound identifier: " ++ id
+                       "Reference to an unbound identifier: " ++ i
 
     ExprApp func args -> do
         evaledFunc <- evalExpr env func
@@ -35,7 +35,9 @@ evalExpr env ast = case ast of
         val <- evalExpr env expr
         evalExpr ((id,val):env) body
 
-    ExprEffectBind id expr body -> undefined
+    ExprEffectBind id expr body -> do
+        val <- evalExpr env expr
+        evalExpr ((id,val):env) body
 
     ExprCompound expr1 expr2 ->
         evalExpr env expr1 >> evalExpr env expr2

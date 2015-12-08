@@ -164,7 +164,7 @@ matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
 repeat_ :: Parser Expr
 repeat_ = ExprRepeat
     <$> (reserved "repeat" *> parens expr)
-    <*> (braces manyExpr)
+    <*> braces manyExpr
 
 run :: Parser Expr
 run = ExprRun <$> (reserved "run" *> braces manyExpr)

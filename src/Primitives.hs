@@ -9,7 +9,7 @@ primitives = [
         _ -> Left $ ErrorGeneric "argument error."
         ))
     , ("print", ValPrimitive "print" (\args->case args of
-        [x] -> Right $ ValUnit
+        [x] -> Right ValUnit
         _ -> Left $ ErrorGeneric "argument error."
         ))
     ]
