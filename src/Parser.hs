@@ -188,7 +188,6 @@ atom :: Parser Expr
 atom =
         variable
     <|> number
-    <|> boolean
     <|> parens expr
     <|> braces manyExpr
     <?> "atom"
@@ -198,9 +197,4 @@ variable = ExprVar <$> identifier
 
 number :: Parser Expr
 number = (ExprNum . fromIntegral) <$> natural
-
-boolean :: Parser Expr
-boolean = fmap ExprBool (
-        (reserved "true" *> pure True)
-    <|> (reserved "false" *> pure False))
 

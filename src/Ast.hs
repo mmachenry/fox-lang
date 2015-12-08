@@ -89,7 +89,6 @@ data Expr =
 
     -- Literal
     | ExprNum Integer
-    | ExprBool Bool
 
     deriving (Show, Eq)
 

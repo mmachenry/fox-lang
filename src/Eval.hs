@@ -55,5 +55,4 @@ evalExpr env ast = case ast of
     ExprRepeat numTimes exprs -> undefined
 
     ExprNum integer -> Right $ ValNum integer
-    ExprBool bool -> Right $ ValBool bool
 

@@ -44,6 +44,9 @@ main = runTestTT $ TestList [
     "A simple identifier" ~:
         readExpr "id" ~?= ExprVar "id",
 
+    "Reading the identifier for true" ~:
+        readExpr "true" ~?= ExprVar "true",
+
     "f applied to x " ~:
         readExpr "f(x)" ~?= ExprApp (ExprVar "f") [(ExprVar "x")],
 

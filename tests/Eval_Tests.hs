@@ -21,11 +21,11 @@ main = runTestTT $ TestList [
             ~?= Right (ValNum 413)
 
     , "Simple if expression with true test." ~:
-        evalExpr [] (ExprIfThenElse (ExprBool True) (ExprNum 413) (ExprNum 2))
+        evalExpr [] (ExprIfThenElse (ExprVar "true") (ExprNum 413) (ExprNum 2))
             ~?= Right (ValNum 413)
 
     , "Simple if expression with false test." ~:
-        evalExpr [] (ExprIfThenElse (ExprBool False) (ExprNum 2) (ExprNum 413))
+        evalExpr [] (ExprIfThenElse (ExprVar "false") (ExprNum 2) (ExprNum 413))
             ~?= Right (ValNum 413)
 
     , "Add operator" ~:
@@ -69,11 +69,11 @@ main = runTestTT $ TestList [
             ~?= Right (ValBool False)
 
     , "And operator" ~:
-        evalExpr [] (ExprApp (ExprVar "&&") [ExprBool True, ExprBool False])
+        evalExpr [] (ExprApp (ExprVar "&&") [ExprVar "true", ExprVar "false"])
             ~?= Right (ValBool False)
 
     , "And operator" ~:
-        evalExpr [] (ExprApp (ExprVar "||") [ExprBool True, ExprBool False])
+        evalExpr [] (ExprApp (ExprVar "||") [ExprVar "true", ExprVar "false"])
             ~?= Right (ValBool True)
 
     , "Simple run, allocate, write, read block." ~:
