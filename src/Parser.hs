@@ -22,31 +22,28 @@ lexer = Token.makeTokenParser $ emptyDef {
     --Token.commentLine = "#",
     Token.reservedOpNames =
         ["=","<-","->",":"]
-        ++ concatMap (fmap fst) binaryOperators
-        ++ concatMap (fmap fst) unaryOperators,
+        ++ concat binaryOperators
+        ++ concat unaryOperators,
     Token.reservedNames = [
-        "true", "false",
         "pure", "partial", "total", "divergent",
         "if", "then", "else",
         "match", "repeat",
         "run"]
     }
 
-binaryOperators :: [[(String, BinOp)]]
+binaryOperators :: [[String]]
 binaryOperators = [
-    [("*",Mul), ("/", Div)],
-    [("+", Add), ("-", Sub)],
-    [(">",Gt), ("<", Lt), (">=", Gte), ("<=", Lte)],
-    [("==", BoolEq), ("!=", Ne)],
-    [("&&", And)],
-    [("||", Or)],
-    [(":=", Assign)]
+    ["*","/"],
+    ["+", "-"],
+    [">","<",">=","<="],
+    ["==","!="],
+    ["&&"],
+    ["||"],
+    [":="]
     ]
 
-unaryOperators :: [[(String, UnaryOp)]]
-unaryOperators = [
-    [("!", Dereference)]
-    ]
+unaryOperators :: [[String]]
+unaryOperators = [["!"]]
 
 natural :: Parser Integer
 natural = Token.natural lexer
@@ -174,9 +171,9 @@ formula = buildExpressionParser table app <?> "formula"
     -- FIXME: this assumes all infix operators happen before all prefix
     where table = fmap (fmap prefix) unaryOperators
                     ++ fmap (fmap infl) binaryOperators
-          infl (lex, abs) = Infix (reservedOp lex >> pure (ExprBinOp abs))
+          infl lex = Infix (reservedOp lex *> pure (\lhs rhs->ExprApp (ExprVar lex) [lhs,rhs]))
                                   AssocLeft
-          prefix (lex, abs) = Prefix (reservedOp lex *> pure (ExprUnaryOp abs))
+          prefix lex = Prefix (reservedOp lex *> pure (\arg->ExprApp (ExprVar lex) [arg]))
 
 app :: Parser Expr
 app = do

@@ -4,8 +4,6 @@ module Ast (
     Parameter(..),
     Pattern(..),
     Expr(..),
-    BinOp(..),
-    UnaryOp(..),
     Type(..),
     Effect(..),
     Identifier,
@@ -88,28 +86,10 @@ data Expr =
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
     | ExprRepeat Expr Expr
-    | ExprBinOp BinOp Expr Expr
-    | ExprUnaryOp UnaryOp Expr
-
-    -- References
-    | ExprAlloc Expr
-    | ExprRead Expr
-    | ExprWrite Expr Expr
 
     -- Literal
     | ExprNum Integer
     | ExprBool Bool
 
     deriving (Show, Eq)
-
-data BinOp =
-      Add | Sub | Mul | Div
-    | BoolEq | Ne | Gt | Lt | Gte | Lte
-    | And | Or
-    -- FIXME Should not have assign operator and aso ExprWrite
-    | Assign
-    deriving (Show, Eq)
-
--- FIXME Should not have dereference op and also ExprRead
-data UnaryOp = Dereference deriving (Show, Eq)
 

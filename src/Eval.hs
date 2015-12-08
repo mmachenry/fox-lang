@@ -53,12 +53,6 @@ evalExpr env ast = case ast of
 
     ExprMatch expr cases -> undefined
     ExprRepeat numTimes exprs -> undefined
-    ExprBinOp binOp lhs rhs -> undefined
-    ExprUnaryOp unaryOp operand -> undefined
-
-    ExprAlloc expr -> undefined
-    ExprRead expr -> undefined
-    ExprWrite lhs rhs -> undefined
 
     ExprNum integer -> Right $ ValNum integer
     ExprBool bool -> Right $ ValBool bool
