@@ -12,9 +12,7 @@ primitives = [
     , ("+", liftPrimitive2 "+" (+) fromNum fromNum ValNum)
     , numericOperator "-" (-) 
     , numericOperator "*" (*) 
-    -- FIXME: For now, Fox only has integers and thus the divide operator
-    -- is integer division
-    , numericOperator "/" div
+    , numericOperator "/" (/)
 
     , booleanOperator "&&" (&&)
     , booleanOperator "||" (||)
@@ -66,17 +64,17 @@ fromBool = \case
     ValBool b -> Right b
     _ -> Left $ DynamicError "Expected bool"
 
-fromNum :: Value -> Either Error Integer
+fromNum :: Value -> Either Error FoxNum
 fromNum = \case
     ValNum i -> Right i
     _ -> Left $ DynamicError "Expected num"
 
-numericOperator :: String -> (Integer -> Integer -> Integer) -> (String, Value)
+numericOperator :: String -> (FoxNum -> FoxNum -> FoxNum) -> (String, Value)
 numericOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValNum)
 
 booleanOperator :: String -> (Bool -> Bool -> Bool) -> (String, Value)
 booleanOperator name f = (name, liftPrimitive2 name f fromBool fromBool ValBool)
 
-compOperator :: String -> (Integer -> Integer -> Bool) -> (String, Value)
+compOperator :: String -> (FoxNum -> FoxNum -> Bool) -> (String, Value)
 compOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValBool)
 

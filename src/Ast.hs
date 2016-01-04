@@ -9,25 +9,30 @@ module Ast (
     Identifier,
     Value(..),
     Error(..),
-    Env
+    Env,
+    FoxNum,
     ) where
+
+import Data.Ratio
+
+type FoxNum = Ratio Integer
 
 data Value =
       ValUnit
-    | ValNum Integer
+    | ValNum FoxNum
     | ValBool Bool
     | ValClosure Env [Parameter] Expr
     | ValPrimitive String ([Value] -> Either Error Value)
 
 instance Show Value where
     show ValUnit = "<unit>"
-    show (ValNum i) = show i
+    show (ValNum n) = show n
     show (ValBool b) = show b
     show ValClosure{} = "<func>"
     show (ValPrimitive name _) = "<primitive:" ++ name ++ ">"
 
 instance Eq Value where
-    (ValNum i1) == (ValNum i2) = i1 == i2
+    (ValNum n1) == (ValNum n2) = n1 == n2
     (ValBool b1) == (ValBool b2) = b1 == b2
     ValClosure{} == ValClosure{} = False
     (ValPrimitive name1 _) == (ValPrimitive name2 _) = name1 == name2
@@ -91,7 +96,7 @@ data Expr =
     | ExprRepeat Expr Expr
 
     -- Literal
-    | ExprNum Integer
+    | ExprNum FoxNum
 
     deriving (Show, Eq)
 
