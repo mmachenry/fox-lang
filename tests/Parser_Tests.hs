@@ -1,6 +1,7 @@
 import Test.HUnit
 import Parser
 import Ast
+import Data.Ratio
 
 expectRight parser str = case readStr parser str of
     Left err -> error (show err)
@@ -40,6 +41,9 @@ mapExample =
 main = runTestTT $ TestList [
     "A number" ~:
         readExpr "413" ~?= ExprNum 413,
+
+    "A fractional number" ~:
+        readExpr "3.14" ~?= ExprNum (157%50),
 
     "A simple identifier" ~:
         readExpr "id" ~?= ExprVar "id",
