@@ -19,18 +19,15 @@ evalExpr env ast = case ast of
                        "Reference to an unbound identifier: " ++ i
 
     ExprApp func args -> do
-        evaledFunc <- evalExpr env func
-        case evaledFunc of
+        funcVal <- evalExpr env func
+        argVals <- sequence $ fmap (evalExpr env) args
+        case funcVal of
             ValClosure closureEnv params body ->
                 if length params == length args
-                then do evaledArgs <- sequence $ fmap (evalExpr env) args
-                        let newEnv = zip (map parameterIdentifier params)
-                                         evaledArgs
-                        evalExpr (newEnv++closureEnv) body
+                then let newEnv = zip (map parameterIdentifier params) argVals
+                     in evalExpr (newEnv++closureEnv) body
                 else Left $ DynamicError "Mismatch number of parameters."
-            ValPrimitive _ prim -> do
-                evaledArgs <- sequence $ fmap (evalExpr env) args
-                prim evaledArgs
+            ValPrimitive _ prim -> prim argVals
             _ -> Left $ DynamicError "Applying a non-function."
 
     ExprAbs params body -> Right $ ValClosure env params body
@@ -43,20 +40,20 @@ evalExpr env ast = case ast of
         val <- evalExpr env expr
         evalExpr ((id,val):env) body
 
-    ExprCompound expr1 expr2 ->
-        evalExpr env expr1 >> evalExpr env expr2
+    ExprCompound expr1 expr2 -> evalExpr env expr1 >> evalExpr env expr2
 
-    ExprRun exprs -> undefined
+    ExprRun expr -> undefined
 
     ExprIfThenElse test consequent alternate -> do
         testValue <- evalExpr env test
         case testValue of
             ValBool True -> evalExpr env consequent
             ValBool False -> evalExpr env alternate
-            _ -> Left $ DynamicError "Condition of IF expression expected a boolean."
+            _ -> Left $ DynamicError "Condition of IF expected a boolean."
 
     ExprMatch expr cases -> undefined
-    ExprRepeat numTimes exprs -> undefined
+
+    ExprRepeat numTimes expr -> undefined
 
     ExprNum integer -> Right $ ValNum integer
 

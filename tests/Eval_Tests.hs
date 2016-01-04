@@ -2,6 +2,7 @@ import Test.HUnit
 import Parser
 import Ast
 import Eval
+import Data.Ratio
 
 main = runTestTT $ TestList [
     "A number" ~:
@@ -52,6 +53,10 @@ main = runTestTT $ TestList [
     , "Div operator" ~:
         evalExpr [] (ExprApp (ExprVar "/") [ExprNum 826, ExprNum 2])
             ~?= Right (ValNum 413)
+
+    , "Noninteger division" ~:
+        evalExpr [] (ExprApp (ExprVar "/") [ExprNum 44, ExprNum 14])
+            ~?= Right (ValNum (22%7))
 
     , "Equal operator" ~:
         evalExpr [] (ExprApp (ExprVar "==") [ExprNum 413, ExprNum 2])
