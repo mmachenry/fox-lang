@@ -4,6 +4,7 @@ import Ast
 import Text.ParserCombinators.Parsec hiding ((<|>), many)
 import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
+import Text.ParserCombinators.Parsec.Number (fractional2)
 import qualified Text.Parsec.Token as Token
 import Control.Applicative
 
@@ -51,9 +52,6 @@ binaryOperators = [
 
 unaryOperators :: [[String]]
 unaryOperators = [["!"]]
-
-natural :: Parser Integer
-natural = Token.natural lexer
 
 parens :: Parser a -> Parser a
 parens = Token.parens lexer
@@ -203,5 +201,8 @@ variable :: Parser Expr
 variable = ExprVar <$> identifier
 
 number :: Parser Expr
-number = (ExprNum . fromIntegral) <$> natural
+number = ExprNum <$> (
+    Token.whiteSpace lexer
+    *> fractional2 False
+    <* Token.whiteSpace lexer)
 
