@@ -32,11 +32,11 @@ primitives = [
     -- For testing
     , ("test", ValPrimitive "test" (\args->case args of
         [ValNum i] -> Right $ ValNum (i+1)
-        _ -> Left $ ErrorGeneric "argument error."
+        _ -> Left $ DynamicError "argument error."
         ))
     , ("print", ValPrimitive "print" (\args->case args of
         [x] -> Right ValUnit
-        _ -> Left $ ErrorGeneric "argument error."
+        _ -> Left $ DynamicError "argument error."
         ))
     ]
 
@@ -45,7 +45,7 @@ liftPrimitive1 func extract inject = ValPrimitive "unnamed" $ \case
     [arg1] -> do
         val1 <- extract arg1
         Right (inject (func val1))
-    _ -> Left $ ErrorGeneric "Invalid number of argments. Expected one."
+    _ -> Left $ DynamicError "Invalid number of argments. Expected one."
 
 liftPrimitive2
     :: String
@@ -59,17 +59,17 @@ liftPrimitive2 name func extract1 extract2 inject = ValPrimitive name $ \case
         val1 <- extract1 arg1
         val2 <- extract2 arg2
         Right (inject (func val1 val2))
-    _ -> Left $ ErrorGeneric "Invalid number of argments. Expected one."
+    _ -> Left $ DynamicError "Invalid number of argments. Expected one."
 
 fromBool :: Value -> Either Error Bool
 fromBool = \case
     ValBool b -> Right b
-    _ -> Left $ ErrorGeneric "Expected bool"
+    _ -> Left $ DynamicError "Expected bool"
 
 fromNum :: Value -> Either Error Integer
 fromNum = \case
     ValNum i -> Right i
-    _ -> Left $ ErrorGeneric "Expected num"
+    _ -> Left $ DynamicError "Expected num"
 
 numericOperator :: String -> (Integer -> Integer -> Integer) -> (String, Value)
 numericOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValNum)

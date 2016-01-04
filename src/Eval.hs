@@ -1,17 +1,21 @@
-module Eval (evalModule, evalExpr, Value(..), Error(..)) where
+module Eval (evalModule, evalExpr) where
 
 import Ast
 import Primitives
 import Control.Applicative
 
 evalModule :: Module -> Either Error Value
-evalModule (Module definitions) = undefined
-
+evalModule (Module definitions) =
+    evalExpr moduleEnvironment $ ExprApp (ExprVar "main") []
+    where moduleEnvironment = map makeClosure definitions
+          makeClosure (Definition identifier params body) =
+              (identifier, ValClosure moduleEnvironment params body)
+ 
 evalExpr :: Env -> Expr -> Either Error Value
 evalExpr env ast = case ast of
     ExprVar i -> case lookup i env <|> lookup i primitives of
         Just val -> Right val
-        Nothing -> Left $ ErrorGeneric $
+        Nothing -> Left $ DynamicError $
                        "Reference to an unbound identifier: " ++ i
 
     ExprApp func args -> do
@@ -23,11 +27,11 @@ evalExpr env ast = case ast of
                         let newEnv = zip (map parameterIdentifier params)
                                          evaledArgs
                         evalExpr (newEnv++closureEnv) body
-                else Left $ ErrorGeneric "Mismatch number of parameters."
+                else Left $ DynamicError "Mismatch number of parameters."
             ValPrimitive _ prim -> do
                 evaledArgs <- sequence $ fmap (evalExpr env) args
                 prim evaledArgs
-            _ -> Left $ ErrorGeneric "Applying a non-function."
+            _ -> Left $ DynamicError "Applying a non-function."
 
     ExprAbs params body -> Right $ ValClosure env params body
 
@@ -49,7 +53,7 @@ evalExpr env ast = case ast of
         case testValue of
             ValBool True -> evalExpr env consequent
             ValBool False -> evalExpr env alternate
-            _ -> Left $ ErrorGeneric "Condition of IF expression expected a boolean."
+            _ -> Left $ DynamicError "Condition of IF expression expected a boolean."
 
     ExprMatch expr cases -> undefined
     ExprRepeat numTimes exprs -> undefined
