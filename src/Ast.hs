@@ -35,7 +35,10 @@ instance Eq Value where
     _ == _ = False
 
 data Error =
-      ErrorGeneric String
+      DynamicError String
+    | StaticError String
+    | TypeError String
+    | ParserError String
     deriving (Eq, Show)
 
 type Env = [(Identifier, Value)]

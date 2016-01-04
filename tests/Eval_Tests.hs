@@ -106,5 +106,10 @@ main = runTestTT $ TestList [
         evalExpr [] (ExprEffectBind "u" (ExprApp (ExprVar "print") [ExprNum 2])
                         (ExprVar "u"))
             ~?= Right ValUnit
+
+    , "Eval simple module" ~:
+        evalModule (Module [
+            Definition "main" [] (ExprVar "unit")
+        ]) ~?= Right ValUnit
     ]
 

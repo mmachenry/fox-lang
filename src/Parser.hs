@@ -1,4 +1,4 @@
-module Parser (readStr, definitions, expr, pattern) where
+module Parser (readProgramFile, readStr, definitions, expr, pattern) where
 
 import Ast
 import Text.ParserCombinators.Parsec hiding ((<|>), many)
@@ -6,6 +6,13 @@ import Text.Parsec.Expr
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Token
 import Control.Applicative
+
+readProgramFile :: String -> IO (Either Error Module)
+readProgramFile filename = do
+    fileContents <- readFile filename
+    return $ case parse (allOf definitions) filename fileContents of
+        Left parseError -> Left $ ParserError (show parseError)
+        Right m -> Right m
 
 readStr :: Parser a -> String -> Either ParseError a
 readStr parser = parse (allOf parser) "fox"
