@@ -28,14 +28,34 @@ primitives = [
     , compOperator ">=" (>=)
     , compOperator "<=" (<=)
 
-    -- For testing
-    , ("test", ValPrimitive "test" (\args->case args of
-        [ValNum i] -> return $ ValNum (i+1)
+    -- State operations
+    , ("newref", ValPrimitive "newref" (\args->case args of
+        [x] -> do
+            refId <- getNextRefId
+            assignValue refId x
+            return $ ValRef refId
         _ -> throwError $ DynamicError "argument error."
         ))
+
+    , (":=", ValPrimitive ":=" (\args->case args of
+        [ValRef refId, val] -> do
+            assignValue refId val
+            return ValUnit
+        _ -> throwError $ DynamicError "argument error."
+        ))
+
+    , ("!", ValPrimitive "!" (\args->case args of
+        [ValRef refId] -> getValue refId
+        _ -> throwError $ DynamicError "argument error."
+        ))
+
+    -- IO stuff
     , ("print", ValPrimitive "print" (\args->case args of
         [x] -> liftIO (print x) >> return ValUnit
         _ -> throwError $ DynamicError "argument error."
+        ))
+    , ("ignore", ValPrimitive "ignore" (\args->case args of
+        _ -> return ValUnit
         ))
     ]
 

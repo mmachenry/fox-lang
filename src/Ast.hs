@@ -13,7 +13,10 @@ module Ast (
     FoxNum,
     EvalMonad,
     runEval,
-    throwError
+    throwError,
+    getNextRefId,
+    assignValue,
+    getValue,
     ) where
 
 import Data.Ratio
@@ -21,7 +24,11 @@ import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as Map
 
-type Heap = Map.Map Int Value
+--------------
+-- Eval Monad
+--------------
+type ReferenceId = Int
+type Heap = Map.Map ReferenceId Value
 
 type EvalMonad = ExceptT FoxError (StateT Heap IO)
 
@@ -33,12 +40,35 @@ runEval e = do
 emptyHeap :: Heap
 emptyHeap = Map.empty
 
+getNextRefId :: EvalMonad ReferenceId
+getNextRefId = do
+    m <- get
+    if Map.size m > 0
+    then let (maxid, _value) = Map.findMax m
+         in return (maxid + 1)
+    else return 0
+
+assignValue :: ReferenceId -> Value -> EvalMonad ()
+assignValue refId val = modify (Map.insert refId val)
+
+getValue :: ReferenceId-> EvalMonad Value
+getValue refId = do
+    m <- get
+    let mValue = Map.lookup refId m
+    case mValue of
+        Nothing -> throwError $ DynamicError "Unbound reference"
+        Just v -> return v
+
+----------------
+-- Rest
+----------------
 type FoxNum = Ratio Integer
 
 data Value =
       ValUnit
     | ValNum FoxNum
     | ValBool Bool
+    | ValRef ReferenceId
     | ValClosure Env [Parameter] Expr
     | ValPrimitive String ([Value] -> EvalMonad Value)
 
