@@ -42,7 +42,7 @@ evalExpr env ast = case ast of
 
     ExprCompound expr1 expr2 -> evalExpr env expr1 >> evalExpr env expr2
 
-    ExprRun expr -> undefined
+    ExprRun expr -> evalExpr env expr
 
     ExprIfThenElse test consequent alternate -> do
         testValue <- evalExpr env test

@@ -165,8 +165,9 @@ main = runTestTT $ TestList [
             ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]) (ExprNum 1),
 
     "Dereference" ~:
-        readExpr "!f1" ~?= ExprApp (ExprVar "!") [ExprVar "f1"],
+        readExpr "!f1" ~?= ExprApp (ExprVar "!") [ExprVar "f1"]
 
+{-
     "Fib example from paper" ~:
         readModule fibExample ~?= Module [
             Definition "fib" [Parameter "n" TypeInferred] $
@@ -186,7 +187,6 @@ main = runTestTT $ TestList [
                         (ExprApp (ExprVar "!") [ExprVar "f2"])))
         ],
 
-{-
     "Sum line of fib" ~:
         expectRight expr "{ sum <- !f1 + !f2; 1 }" ~?=
             ExprEffectBind "sum"
@@ -199,7 +199,6 @@ main = runTestTT $ TestList [
                 ExprBinOp Add (ExprUnaryOp Dereference (ExprVar "f1"))
                               (ExprUnaryOp Dereference (ExprVar "f2")),
 
--}
 
     "Map example from paper" ~:
         readModule mapExample ~?= Module [
@@ -214,5 +213,6 @@ main = runTestTT $ TestList [
                     ]
                 )
             ]
+-}
     ]
 
