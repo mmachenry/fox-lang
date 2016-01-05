@@ -6,7 +6,11 @@ import System.Environment
 main = do
     [filename] <- getArgs
     result <- readProgramFile filename
-    case result >>= evalModule of
+    case result of
         Left e -> print e
-        Right v -> print v
+        Right p -> do
+            value <- evalModule p
+            case value of
+                Left e -> print e
+                Right v -> print v
 

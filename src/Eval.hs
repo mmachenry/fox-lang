@@ -4,18 +4,18 @@ import Ast
 import Primitives
 import Control.Applicative
 
-evalModule :: Module -> Either Error Value
+evalModule :: Module -> IO (Either FoxError Value)
 evalModule (Module definitions) =
-    evalExpr moduleEnvironment $ ExprApp (ExprVar "main") []
+    runEval $ evalExpr moduleEnvironment $ ExprApp (ExprVar "main") []
     where moduleEnvironment = map makeClosure definitions
           makeClosure (Definition identifier params body) =
               (identifier, ValClosure moduleEnvironment params body)
  
-evalExpr :: Env -> Expr -> Either Error Value
+evalExpr :: Env -> Expr -> EvalMonad Value
 evalExpr env ast = case ast of
     ExprVar i -> case lookup i env <|> lookup i primitives of
-        Just val -> Right val
-        Nothing -> Left $ DynamicError $
+        Just val -> return val
+        Nothing -> throwError $ DynamicError $
                        "Reference to an unbound identifier: " ++ i
 
     ExprApp func args -> do
@@ -26,11 +26,11 @@ evalExpr env ast = case ast of
                 if length params == length args
                 then let newEnv = zip (map parameterIdentifier params) argVals
                      in evalExpr (newEnv++closureEnv) body
-                else Left $ DynamicError "Mismatch number of parameters."
+                else throwError $ DynamicError "Mismatch number of parameters."
             ValPrimitive _ prim -> prim argVals
-            _ -> Left $ DynamicError "Applying a non-function."
+            _ -> throwError $ DynamicError "Applying a non-function."
 
-    ExprAbs params body -> Right $ ValClosure env params body
+    ExprAbs params body -> return $ ValClosure env params body
 
     ExprLetBind id expr body -> do
         val <- evalExpr env expr
@@ -49,11 +49,11 @@ evalExpr env ast = case ast of
         case testValue of
             ValBool True -> evalExpr env consequent
             ValBool False -> evalExpr env alternate
-            _ -> Left $ DynamicError "Condition of IF expected a boolean."
+            _ -> throwError $ DynamicError "Condition of IF expected a boolean."
 
     ExprMatch expr cases -> undefined
 
     ExprRepeat numTimes expr -> undefined
 
-    ExprNum integer -> Right $ ValNum integer
+    ExprNum integer -> return $ ValNum integer
 
