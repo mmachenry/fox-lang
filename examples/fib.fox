@@ -4,4 +4,7 @@ fib (n) {
     else fib(n-1) + fib(n-2)
 }
 
-main () { print(fib (5)) }
+main () {
+    print (fib (5));
+    print (fib (10))
+}

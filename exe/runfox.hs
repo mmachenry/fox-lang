@@ -12,5 +12,5 @@ main = do
             value <- evalModule p
             case value of
                 Left e -> print e
-                Right v -> print v
+                Right v -> return ()
 
