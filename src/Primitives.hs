@@ -29,7 +29,7 @@ primitives = [
     , compOperator "<=" (<=)
 
     -- State operations
-    , ("newref", ValPrimitive "newref" (\args->case args of
+    , ("newref", ValPrimitive "newref" (\case
         [x] -> do
             refId <- getNextRefId
             assignValue refId x
@@ -37,24 +37,24 @@ primitives = [
         _ -> throwError $ DynamicError "argument error."
         ))
 
-    , (":=", ValPrimitive ":=" (\args->case args of
+    , (":=", ValPrimitive ":=" (\case
         [ValRef refId, val] -> do
             assignValue refId val
             return ValUnit
         _ -> throwError $ DynamicError "argument error."
         ))
 
-    , ("!", ValPrimitive "!" (\args->case args of
+    , ("!", ValPrimitive "!" (\case
         [ValRef refId] -> getValue refId
         _ -> throwError $ DynamicError "argument error."
         ))
 
     -- IO stuff
-    , ("print", ValPrimitive "print" (\args->case args of
+    , ("print", ValPrimitive "print" (\case
         [x] -> liftIO (print x) >> return ValUnit
         _ -> throwError $ DynamicError "argument error."
         ))
-    , ("ignore", ValPrimitive "ignore" (\args->case args of
+    , ("ignore", ValPrimitive "ignore" (\case
         _ -> return ValUnit
         ))
     ]
