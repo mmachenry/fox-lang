@@ -3,6 +3,7 @@
 module Primitives where
 
 import Ast
+import Control.Monad.IO.Class
 
 primitives :: [(String, Value)]
 primitives = [
@@ -29,45 +30,45 @@ primitives = [
 
     -- For testing
     , ("test", ValPrimitive "test" (\args->case args of
-        [ValNum i] -> Right $ ValNum (i+1)
-        _ -> Left $ DynamicError "argument error."
+        [ValNum i] -> return $ ValNum (i+1)
+        _ -> throwError $ DynamicError "argument error."
         ))
     , ("print", ValPrimitive "print" (\args->case args of
-        [x] -> Right ValUnit
-        _ -> Left $ DynamicError "argument error."
+        [x] -> liftIO (print x) >> return ValUnit
+        _ -> throwError $ DynamicError "argument error."
         ))
     ]
 
-liftPrimitive1 :: (a -> b) -> (Value -> Either Error a) -> (b -> Value) -> Value
+liftPrimitive1 :: (a -> b) -> (Value -> EvalMonad a) -> (b -> Value) -> Value
 liftPrimitive1 func extract inject = ValPrimitive "unnamed" $ \case
     [arg1] -> do
         val1 <- extract arg1
-        Right (inject (func val1))
-    _ -> Left $ DynamicError "Invalid number of argments. Expected one."
+        return (inject (func val1))
+    _ -> throwError $ DynamicError "Invalid number of argments. Expected one."
 
 liftPrimitive2
     :: String
     -> (a -> b -> c)
-    -> (Value -> Either Error a)
-    -> (Value -> Either Error b)
+    -> (Value -> EvalMonad a)
+    -> (Value -> EvalMonad b)
     -> (c -> Value)
     -> Value
 liftPrimitive2 name func extract1 extract2 inject = ValPrimitive name $ \case
     [arg1, arg2] -> do
         val1 <- extract1 arg1
         val2 <- extract2 arg2
-        Right (inject (func val1 val2))
-    _ -> Left $ DynamicError "Invalid number of argments. Expected one."
+        return (inject (func val1 val2))
+    _ -> throwError $ DynamicError "Invalid number of argments. Expected one."
 
-fromBool :: Value -> Either Error Bool
+fromBool :: Value -> EvalMonad Bool
 fromBool = \case
-    ValBool b -> Right b
-    _ -> Left $ DynamicError "Expected bool"
+    ValBool b -> return b
+    _ -> throwError $ DynamicError "Expected bool"
 
-fromNum :: Value -> Either Error FoxNum
+fromNum :: Value -> EvalMonad FoxNum
 fromNum = \case
-    ValNum i -> Right i
-    _ -> Left $ DynamicError "Expected num"
+    ValNum i -> return i
+    _ -> throwError $ DynamicError "Expected num"
 
 numericOperator :: String -> (FoxNum -> FoxNum -> FoxNum) -> (String, Value)
 numericOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValNum)

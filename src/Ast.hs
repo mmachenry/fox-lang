@@ -8,12 +8,30 @@ module Ast (
     Effect(..),
     Identifier,
     Value(..),
-    Error(..),
+    FoxError(..),
     Env,
     FoxNum,
+    EvalMonad,
+    runEval,
+    throwError
     ) where
 
 import Data.Ratio
+import Control.Monad.Except
+import Control.Monad.State
+import qualified Data.Map as Map
+
+type Heap = Map.Map Int Value
+
+type EvalMonad = ExceptT FoxError (StateT Heap IO)
+
+runEval :: EvalMonad a -> IO (Either FoxError a)
+runEval e = do
+    (value, _resultState) <- runStateT (runExceptT e) emptyHeap
+    return value
+
+emptyHeap :: Heap
+emptyHeap = Map.empty
 
 type FoxNum = Ratio Integer
 
@@ -22,7 +40,7 @@ data Value =
     | ValNum FoxNum
     | ValBool Bool
     | ValClosure Env [Parameter] Expr
-    | ValPrimitive String ([Value] -> Either Error Value)
+    | ValPrimitive String ([Value] -> EvalMonad Value)
 
 instance Show Value where
     show ValUnit = "<unit>"
@@ -39,11 +57,12 @@ instance Eq Value where
     ValUnit == ValUnit = True
     _ == _ = False
 
-data Error =
+data FoxError =
       DynamicError String
     | StaticError String
     | TypeError String
-    | ParserError String
+    | ParserError String -- consider making this Parsec.ParseError
+    | UserError Value
     deriving (Eq, Show)
 
 type Env = [(Identifier, Value)]
