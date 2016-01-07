@@ -51,13 +51,6 @@ typeWrap1 func extract inject = ValPrimitive "unnamed" $ \case
         return $ inject result
     _ -> throwError $ DynamicError "Invalid number of arguments. Expected one."
 
-liftPrimitive1 :: (a -> b) -> (Value -> EvalMonad a) -> (b -> Value) -> Value
-liftPrimitive1 func extract inject = ValPrimitive "unnamed" $ \case
-    [arg1] -> do
-        val1 <- extract arg1
-        return (inject (func val1))
-    _ -> throwError $ DynamicError "Invalid number of argments. Expected one."
-
 liftPrimitive2
     :: String
     -> (a -> b -> c)
