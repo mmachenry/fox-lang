@@ -85,7 +85,7 @@ definition :: Parser Definition
 definition = Definition
     <$> identifier
     <*> parens (commaSep parameter)
-    <*> manyExpr
+    <*> braces manyExpr
 
 manyExpr :: Parser Expr
 manyExpr = letBind <|> effectBind <|> compoundExpr
@@ -104,11 +104,35 @@ effectBind = ExprEffectBind
 
 compoundExpr :: Parser Expr
 compoundExpr = do
-    expr1 <- expr
+    expr1 <- statement <|> expr
     rest <- fmap Just (reservedOp ";" *> manyExpr) <|> pure Nothing
     case rest of
         Just otherExprs -> pure $ ExprCompound expr1 otherExprs
         Nothing -> pure expr1
+
+-- Statements are expressions that have the form "name { ... }" and do not
+-- have a semicolon after them when appearing in a block.
+
+statement :: Parser Expr
+statement = repeat_ <|> run
+
+repeat_ :: Parser Expr
+repeat_ = ExprRepeat
+    <$> (reserved "repeat" *> parens expr)
+    <*> braces manyExpr
+
+run :: Parser Expr
+run = ExprRun <$> (reserved "run" *> braces manyExpr)
+
+match :: Parser Expr
+match = ExprMatch
+    <$> (reserved "match" *> expr)
+    <*> braces (Token.semiSep1 lexer matchClause)
+
+matchClause :: Parser (Pattern, Expr)
+matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
+
+-- end statements
 
 parameter :: Parser Parameter
 parameter = Parameter
@@ -117,9 +141,9 @@ parameter = Parameter
 
 type_ :: Parser Type
 type_ =
-        try (TypeFunction <$> (parens (commaSep type_) <|> fmap pure nonArrowType)
-                          <*> (reservedOp "->" *> effect)
-                          <*> type_)
+    try (TypeFunction <$> (parens (commaSep type_) <|> fmap pure nonArrowType)
+                      <*> (reservedOp "->" *> effect)
+                      <*> type_)
     <|> nonArrowType
 
 nonArrowType :: Parser Type
@@ -154,22 +178,6 @@ ifThenElse = liftA3 ExprIfThenElse
     (reserved "if" *> expr)
     (reserved "then" *> expr)
     (reserved "else" *> expr)
-
-match :: Parser Expr
-match = ExprMatch
-    <$> (reserved "match" *> expr)
-    <*> braces (Token.semiSep1 lexer matchClause)
-
-matchClause :: Parser (Pattern, Expr)
-matchClause = (,) <$> pattern <*> (reservedOp "->" *> expr)
-
-repeat_ :: Parser Expr
-repeat_ = ExprRepeat
-    <$> (reserved "repeat" *> parens expr)
-    <*> braces manyExpr
-
-run :: Parser Expr
-run = ExprRun <$> (reserved "run" *> braces manyExpr)
 
 formula :: Parser Expr
 formula = buildExpressionParser table app <?> "formula"

@@ -4,7 +4,19 @@ fib (n) {
     else fib(n-1) + fib(n-2)
 }
 
-main () {
-    print (fib (5));
-    print (fib (10))
+fib2 (n) {
+    f1 <- newref (1);
+    f2 <- newref (1);
+    repeat (n - 1) {
+        sum <- !f1 + !f2;
+        f1 := !f2;
+        f2 := sum
+    };
+    !f2
 }
+
+main () {
+    print (fib (10));
+    print (fib2 (10))
+}
+
