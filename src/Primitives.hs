@@ -17,7 +17,7 @@ primitives = [
 
     , booleanOperator "&&" (&&)
     , booleanOperator "||" (||)
-    , ("not", liftPrimitive1 not fromBool ValBool)
+    , ("not", typeWrap1 (pure . not) fromBool ValBool)
 
     -- FIXME: For now, implementing == and != as monomorphic operations
     -- on integers. This will need to change.
@@ -29,14 +29,8 @@ primitives = [
     , compOperator "<=" (<=)
 
     -- State operations
-    , ("newref", ValPrimitive "newref" (\case
-        [x] -> do
-            refId <- getNextRefId
-            assignValue refId x
-            return $ ValRef refId
-        _ -> throwError $ DynamicError "argument error."
-        ))
-
+    , ("newref", typeWrap1 allocateReference pure ValRef)
+    , ("!", typeWrap1 getValue (\(ValRef x)->return x) id)
     , (":=", ValPrimitive ":=" (\case
         [ValRef refId, val] -> do
             assignValue refId val
@@ -44,20 +38,18 @@ primitives = [
         _ -> throwError $ DynamicError "argument error."
         ))
 
-    , ("!", ValPrimitive "!" (\case
-        [ValRef refId] -> getValue refId
-        _ -> throwError $ DynamicError "argument error."
-        ))
-
     -- IO stuff
-    , ("print", ValPrimitive "print" (\case
-        [x] -> liftIO (print x) >> return ValUnit
-        _ -> throwError $ DynamicError "argument error."
-        ))
-    , ("ignore", ValPrimitive "ignore" (\case
-        _ -> return ValUnit
-        ))
+    , ("print", typeWrap1 (liftIO . print) pure (const ValUnit))
+    , ("ignore", typeWrap1 (const $ pure ()) pure (const ValUnit))
     ]
+
+typeWrap1 :: (a -> EvalMonad b) -> (Value -> EvalMonad a) -> (b -> Value) -> Value
+typeWrap1 func extract inject = ValPrimitive "unnamed" $ \case
+    [arg1] -> do
+        val1 <- extract arg1
+        result <- func val1
+        return $ inject result
+    _ -> throwError $ DynamicError "Invalid number of arguments. Expected one."
 
 liftPrimitive1 :: (a -> b) -> (Value -> EvalMonad a) -> (b -> Value) -> Value
 liftPrimitive1 func extract inject = ValPrimitive "unnamed" $ \case

@@ -17,6 +17,7 @@ module Ast (
     getNextRefId,
     assignValue,
     getValue,
+    allocateReference,
     ) where
 
 import Data.Ratio
@@ -51,6 +52,12 @@ getNextRefId = do
 assignValue :: ReferenceId -> Value -> EvalMonad ()
 assignValue refId val = modify (Map.insert refId val)
 
+allocateReference :: Value -> EvalMonad ReferenceId
+allocateReference val = do
+    refid <- getNextRefId
+    assignValue refid val
+    return refid
+
 getValue :: ReferenceId-> EvalMonad Value
 getValue refId = do
     m <- get
@@ -78,6 +85,7 @@ instance Show Value where
     show (ValBool b) = show b
     show ValClosure{} = "<func>"
     show (ValPrimitive name _) = "<primitive:" ++ name ++ ">"
+    show (ValRef _) = "<reference>"
 
 instance Eq Value where
     (ValNum n1) == (ValNum n2) = n1 == n2
