@@ -3,6 +3,7 @@ module Eval (evalModule, evalExpr) where
 import Ast
 import Primitives
 import Control.Applicative
+import Control.Monad
 
 evalModule :: Module -> IO (Either FoxError Value)
 evalModule (Module definitions) =
@@ -53,7 +54,12 @@ evalExpr env ast = case ast of
 
     ExprMatch expr cases -> undefined
 
-    ExprRepeat numTimes expr -> undefined
+    ExprRepeat numTimes expr -> do
+        numval <- evalExpr env numTimes
+        case numval of
+            ValNum n -> do replicateM_ (ceiling n) (evalExpr env expr)
+                           return ValUnit
+            v -> throwError $ DynamicError $ "Expected number for repeat" ++ show v
 
     ExprNum integer -> return $ ValNum integer
 

@@ -110,11 +110,21 @@ main = runTestTT $ TestList [
     , "Eval simple module" ~: TestCase $ do
         result <- evalModule (Module [Definition "main" [] (ExprVar "unit")])
         assertEqual "" result (Right ValUnit)
+
+    , "Repeat { x <- newref(206); repeat (207) { x := !x + 1 } !x" ~:
+        evalExpr [] (ExprEffectBind "x" (ExprApp (ExprVar "newref") [ExprNum 206])
+                        (ExprCompound
+                            (ExprRepeat (ExprNum 207)
+                                (ExprApp (ExprVar ":=") [
+                                    ExprVar "x",
+                                    (ExprApp (ExprVar "+") [ExprApp (ExprVar "!") [ExprVar "x"], ExprNum 1]) ] ))
+                            (ExprApp (ExprVar "!") [ExprVar "x"])))
+            `shouldBe` Right (ValNum 413)
     ]
 
 -- A simple helper function for encapsulating running the evaluator in IO and creating a
 -- test case suitable for HUnit.
 shouldBe e v = TestCase $ do
     result <- runEval e
-    assertEqual "" result v
+    assertEqual "" v result
 
