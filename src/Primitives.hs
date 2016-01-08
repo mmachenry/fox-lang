@@ -3,6 +3,8 @@
 module Primitives where
 
 import Ast
+import State
+import Control.Monad.State
 import Control.Monad.IO.Class
 
 primitives :: [(String, Value)]
@@ -10,7 +12,7 @@ primitives = [
       ("unit", ValUnit)
     , ("true", ValBool True)
     , ("false", ValBool False)
-    , ("+", liftPrimitive2 "+" (+) fromNum fromNum ValNum)
+    , numericOperator "+" (+)
     , numericOperator "-" (-) 
     , numericOperator "*" (*) 
     , numericOperator "/" (/)
@@ -30,7 +32,7 @@ primitives = [
 
     -- State operations
     , ("newref", typeWrap1 allocateReference pure ValRef)
-    , ("!", typeWrap1 getValue (\(ValRef x)->return x) id)
+    , ("!", typeWrap1 getValue fromRef id)
     , (":=", ValPrimitive ":=" (\case
         [ValRef loc, val] -> do
             assignValue loc val
@@ -43,7 +45,24 @@ primitives = [
     , ("ignore", typeWrap1 (const $ pure ()) pure (const ValUnit))
     ]
 
-typeWrap1 :: (a -> EvalMonad b) -> (Value -> EvalMonad a) -> (b -> Value) -> Value
+allocateReference :: Value -> EvalMonad ReferenceId
+allocateReference val = do
+    state <- get
+    let (refid, newState) = addReference val state
+    put newState
+    return refid
+
+getValue :: ReferenceId -> EvalMonad Value
+getValue refid = lookupReference refid <$> get
+
+assignValue :: ReferenceId -> Value -> EvalMonad ()
+assignValue refid val = modify (updateReference refid val)
+
+typeWrap1
+    :: (a -> EvalMonad b)
+    -> (Value -> EvalMonad a)
+    -> (b -> Value)
+    -> Value
 typeWrap1 func extract inject = ValPrimitive "unnamed" $ \case
     [arg1] -> do
         val1 <- extract arg1
@@ -74,6 +93,11 @@ fromNum :: Value -> EvalMonad FoxNum
 fromNum = \case
     ValNum i -> return i
     _ -> throwError $ DynamicError "Expected num"
+
+fromRef :: Value -> EvalMonad ReferenceId
+fromRef = \case
+    ValRef refid -> return refid
+    _ -> throwError $ DynamicError "Expected reference"
 
 numericOperator :: String -> (FoxNum -> FoxNum -> FoxNum) -> (String, Value)
 numericOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValNum)
