@@ -14,82 +14,34 @@ module Ast (
     EvalMonad,
     runEval,
     throwError,
-    beginRun,
-    endRun,
-    assignValue,
-    getValue,
-    allocateReference,
     ) where
 
 import Data.Ratio
 import Control.Monad.Except
 import Control.Monad.State
-import qualified Data.Map as Map
-import qualified Data.Vector.Persistent as V
+import State
 
---------------
--- State
---------------
-type FoxState = V.Vector Heap
-type Heap = V.Vector Value
-type HeapId = Int
-type ReferenceId = Int
-
-emptyState :: FoxState
-emptyState = V.singleton V.empty
-
-beginRun :: EvalMonad ()
-beginRun = modify (flip V.snoc V.empty)
-
-endRun :: EvalMonad ()
-endRun = do
-    state <- get
-    let newState = V.take (V.length state - 1) state
-    put newState
-
-allocateReference :: Value -> EvalMonad (HeapId, ReferenceId)
-allocateReference val = do
-    state <- get
-    let topHeapId = V.length state - 1
-    let topHeap = V.unsafeIndex state topHeapId
-    let newState = V.update topHeapId (V.snoc topHeap val) state
-    put newState
-    return (topHeapId, V.length topHeap)
-
-assignValue :: (HeapId, ReferenceId) -> Value -> EvalMonad ()
-assignValue (heapid, refid) val = do
-    state <- get
-    let heap = V.unsafeIndex state heapid
-    let newHeap = V.update refid val heap
-    let newState = V.update heapid newHeap state
-    put newState
-
-getValue :: (HeapId, ReferenceId) -> EvalMonad Value
-getValue (heapid, refid) = do
-    state <- get
-    let heap = V.unsafeIndex state heapid
-    return $ V.unsafeIndex heap refid
-
---------------
--- Eval Monad
---------------
-type EvalMonad = ExceptT FoxError (StateT FoxState IO)
+---------
+---- Eval
+---------
+type EvalMonad = ExceptT FoxError (StateT (FoxState Value) IO)
 
 runEval :: EvalMonad a -> IO (Either FoxError a)
 runEval e = do
     (value, _resultState) <- runStateT (runExceptT e) emptyState
     return value
 
-----------------
--- Rest
-----------------
+---------
+-- Other
+---------
+
 type FoxNum = Ratio Integer
 
 data Value =
       ValUnit
     | ValNum FoxNum
     | ValBool Bool
-    | ValRef (HeapId, ReferenceId)
+    | ValRef ReferenceId
     | ValClosure Env [Parameter] Expr
     | ValPrimitive String ([Value] -> EvalMonad Value)
 

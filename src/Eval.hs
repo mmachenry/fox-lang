@@ -2,6 +2,8 @@ module Eval (evalModule, evalExpr) where
 
 import Ast
 import Primitives
+import State
+import Control.Monad.State
 import Control.Applicative
 import Control.Monad
 
@@ -44,9 +46,9 @@ evalExpr env ast = case ast of
     ExprCompound expr1 expr2 -> evalExpr env expr1 >> evalExpr env expr2
 
     ExprRun expr -> do
-        beginRun
+        modify pushHeap
         value <- evalExpr env expr
-        endRun
+        modify popHeap
         return value
 
     ExprIfThenElse test consequent alternate -> do
