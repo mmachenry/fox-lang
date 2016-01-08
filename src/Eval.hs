@@ -43,7 +43,11 @@ evalExpr env ast = case ast of
 
     ExprCompound expr1 expr2 -> evalExpr env expr1 >> evalExpr env expr2
 
-    ExprRun expr -> evalExpr env expr
+    ExprRun expr -> do
+        beginRun
+        value <- evalExpr env expr
+        endRun
+        return value
 
     ExprIfThenElse test consequent alternate -> do
         testValue <- evalExpr env test
