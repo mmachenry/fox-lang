@@ -112,13 +112,13 @@ main = runTestTT $ TestList [
         assertEqual "" result (Right ValUnit)
 
     , "Repeat { x <- newref(206); repeat (207) { x := !x + 1 } !x" ~:
-        evalExpr [] (ExprEffectBind "x" (ExprApp (ExprVar "newref") [ExprNum 206])
+        evalExpr [] (ExprRun (ExprEffectBind "x" (ExprApp (ExprVar "newref") [ExprNum 206])
                         (ExprCompound
                             (ExprRepeat (ExprNum 207)
                                 (ExprApp (ExprVar ":=") [
                                     ExprVar "x",
                                     (ExprApp (ExprVar "+") [ExprApp (ExprVar "!") [ExprVar "x"], ExprNum 1]) ] ))
-                            (ExprApp (ExprVar "!") [ExprVar "x"])))
+                            (ExprApp (ExprVar "!") [ExprVar "x"]))))
             `shouldBe` Right (ValNum 413)
     ]
 
