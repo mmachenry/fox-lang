@@ -32,8 +32,8 @@ primitives = [
     , ("newref", typeWrap1 allocateReference pure ValRef)
     , ("!", typeWrap1 getValue (\(ValRef x)->return x) id)
     , (":=", ValPrimitive ":=" (\case
-        [ValRef refId, val] -> do
-            assignValue refId val
+        [ValRef loc, val] -> do
+            assignValue loc val
             return ValUnit
         _ -> throwError $ DynamicError "argument error."
         ))
