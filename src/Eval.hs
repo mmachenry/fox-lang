@@ -10,9 +10,8 @@ import Control.Monad
 import qualified Data.Map as Map
 
 evalModule :: Module -> IO (Either FoxError Value)
-evalModule (Module definitions) = runEval $
-    local (const (Map.union moduleEnvironment (Map.fromList primitives))) $
-        evalExpr $ ExprApp (ExprVar "main") []
+evalModule (Module definitions) = runEval $ local (const moduleEnvironment) $
+    evalExpr $ ExprApp (ExprVar "main") []
     where moduleEnvironment = Map.fromList $ map makeClosure definitions
           makeClosure (Definition identifier params body) =
               (identifier, ValClosure moduleEnvironment params body)
@@ -21,7 +20,7 @@ evalExpr :: Expr -> EvalMonad Value
 evalExpr ast = case ast of
     ExprVar i -> do
         env <- ask
-        case Map.lookup i env of
+        case Map.lookup i env <|> Map.lookup i (Map.fromList primitives) of
             Just val -> return val
             Nothing -> throwError $ DynamicError $
                         "Reference to an unbound identifier: " ++ i
@@ -33,7 +32,8 @@ evalExpr ast = case ast of
             ValClosure closureEnv params body ->
                 if length params == length args
                 then let newEnv = Map.fromList $ zip (map parameterIdentifier params) argVals
-                     in local (Map.union newEnv) $ evalExpr body
+                     in local (Map.union (Map.union closureEnv newEnv)) $
+                            evalExpr body
                 else throwError $ DynamicError "Mismatch number of parameters."
             ValPrimitive _ prim -> prim argVals
             _ -> throwError $ DynamicError "Applying a non-function."
