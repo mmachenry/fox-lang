@@ -9,7 +9,6 @@ module Ast (
     Identifier,
     Value(..),
     FoxError(..),
-    Env,
     FoxNum,
     EvalMonad,
     runEval,
@@ -19,16 +18,22 @@ module Ast (
 import Data.Ratio
 import Control.Monad.Except
 import Control.Monad.State
+import Control.Monad.Reader
+import qualified Data.Map as Map
 import State
 
 ---------
 ---- Eval
 ---------
-type EvalMonad = ExceptT FoxError (StateT (FoxState Value) IO)
+type EvalMonad = ReaderT FoxEnv (ExceptT FoxError (StateT (FoxState Value) IO))
+
+type FoxEnv = Map.Map Identifier Value
+emptyEnv = Map.empty
 
 runEval :: EvalMonad a -> IO (Either FoxError a)
 runEval e = do
-    (value, _resultState) <- runStateT (runExceptT e) emptyState
+    (value, _resultState) <-
+        runStateT (runExceptT (runReaderT e emptyEnv)) emptyState
     return value
 
 ---------
@@ -42,7 +47,7 @@ data Value =
     | ValNum FoxNum
     | ValBool Bool
     | ValRef ReferenceId
-    | ValClosure Env [Parameter] Expr
+    | ValClosure FoxEnv [Parameter] Expr
     | ValPrimitive String ([Value] -> EvalMonad Value)
 
 instance Show Value where
@@ -68,8 +73,6 @@ data FoxError =
     | ParserError String -- consider making this Parsec.ParseError
     | UserError Value
     deriving (Eq, Show)
-
-type Env = [(Identifier, Value)]
 
 type Identifier = String
 
