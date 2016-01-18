@@ -40,10 +40,10 @@ mapExample =
 
 main = runTestTT $ TestList [
     "A number" ~:
-        readExpr "413" ~?= ExprNum 413
+        readExpr "413" ~?= ExprLiteral (ValNum 413)
 
     , "A fractional number" ~:
-        readExpr "3.14" ~?= ExprNum (157%50)
+        readExpr "3.14" ~?= ExprLiteral (ValNum (157%50))
 
     , "A simple identifier" ~:
         readExpr "id" ~?= ExprVar "id"
@@ -64,31 +64,31 @@ main = runTestTT $ TestList [
 
     , "Arithmetic expression: 1 + 2 * 3" ~:
         readExpr "1 + 2 * 3" ~?=
-        ExprApp (ExprVar "+") [ExprNum 1, ExprApp (ExprVar "*") [ExprNum 2, ExprNum 3]]
+        ExprApp (ExprVar "+") [ExprLiteral $ ValNum 1, ExprApp (ExprVar "*") [ExprLiteral $ ValNum 2, ExprLiteral $ ValNum 3]]
 
     , "Arithmetic expression: 1 * 2 + 3" ~:
         readExpr "1 * 2 + 3" ~?=
-        ExprApp (ExprVar "+") [ExprApp (ExprVar "*") [ExprNum 1, ExprNum 2], ExprNum 3]
+        ExprApp (ExprVar "+") [ExprApp (ExprVar "*") [ExprLiteral $ ValNum 1, ExprLiteral $ ValNum 2], ExprLiteral $ ValNum 3]
 
     , "Arithmetic expression: 1 * (2 + 3) " ~:
         readExpr "1 * (2 + 3)" ~?=
-        ExprApp (ExprVar "*") [ExprNum 1, ExprApp (ExprVar "+") [ExprNum 2, ExprNum 3]]
+        ExprApp (ExprVar "*") [ExprLiteral $ ValNum 1, ExprApp (ExprVar "+") [ExprLiteral $ ValNum 2, ExprLiteral $ ValNum 3]]
 
     , "Boolean expression: 3 < 4 && 5 >= 4 || 1 != 0" ~:
         readExpr "3 < 4 && 5 >= 4 || 1 != 0" ~?=
         ExprApp (ExprVar "||") [
             ExprApp (ExprVar "&&") [
-                ExprApp (ExprVar "<") [ExprNum 3, ExprNum 4],
-                ExprApp (ExprVar ">=") [ExprNum 5, ExprNum 4]],
-            ExprApp (ExprVar "!=") [ExprNum 1, ExprNum 0]]
+                ExprApp (ExprVar "<") [ExprLiteral $ ValNum 3, ExprLiteral $ ValNum 4],
+                ExprApp (ExprVar ">=") [ExprLiteral $ ValNum 5, ExprLiteral $ ValNum 4]],
+            ExprApp (ExprVar "!=") [ExprLiteral $ ValNum 1, ExprLiteral $ ValNum 0]]
 
     , "Boolean expression: 1 != 0 || 3 < 4 && 5 >= 4" ~:
         readExpr "1 != 0 || 3 < 4 && 5 >= 4" ~?=
         ExprApp (ExprVar "||") [
-            ExprApp (ExprVar "!=") [ExprNum 1, ExprNum 0],
+            ExprApp (ExprVar "!=") [ExprLiteral $ ValNum 1, ExprLiteral $ ValNum 0],
             ExprApp (ExprVar "&&") [
-                ExprApp (ExprVar "<") [ExprNum 3, ExprNum 4],
-                ExprApp (ExprVar ">=") [ExprNum 5, ExprNum 4]]]
+                ExprApp (ExprVar "<") [ExprLiteral $ ValNum 3, ExprLiteral $ ValNum 4],
+                ExprApp (ExprVar ">=") [ExprLiteral $ ValNum 5, ExprLiteral $ ValNum 4]]]
 
     , "Simple module" ~:
         readModule "square (x) { x * x }" ~?=
@@ -162,7 +162,7 @@ main = runTestTT $ TestList [
 
     , "Effect bind" ~:
         expectRight expr "{ f1 <- newref (1); 1 }" ~?=
-            ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]) (ExprNum 1)
+            ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprLiteral $ ValNum 1]) (ExprLiteral $ ValNum 1)
 
     , "Dereference" ~:
         readExpr "!f1" ~?= ExprApp (ExprVar "!") [ExprVar "f1"]
@@ -174,7 +174,7 @@ main = runTestTT $ TestList [
                     ExprApp (ExprVar "!") [ExprVar "f1"],
                     ExprApp (ExprVar "!") [ExprVar "f2"]
                     ])
-                (ExprNum 1)
+                (ExprLiteral $ ValNum 1)
 
     , "Double deref" ~:
         expectRight expr "!f1 + !f2" ~?=
@@ -190,14 +190,14 @@ main = runTestTT $ TestList [
                             ExprVar "x",
                             ExprApp (ExprVar "+") [
                                 ExprVar "x",
-                                ExprNum 1 ]])
+                                ExprLiteral $ ValNum 1 ]])
     , "Fib example from paper" ~:
         readModule fibExample ~?= Module [
             Definition "fib" [Parameter "n" TypeInferred] $
-                ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprNum 1]) (
-                    ExprEffectBind "f2" (ExprApp (ExprVar "newref") [ExprNum 1]) (
+                ExprEffectBind "f1" (ExprApp (ExprVar "newref") [ExprLiteral $ ValNum 1]) (
+                    ExprEffectBind "f2" (ExprApp (ExprVar "newref") [ExprLiteral $ ValNum 1]) (
                         ExprCompound (
-                            ExprRepeat (ExprApp (ExprVar "-") [ExprVar "n", ExprNum 1])
+                            ExprRepeat (ExprApp (ExprVar "-") [ExprVar "n", ExprLiteral $ ValNum 1])
                                 (ExprEffectBind "sum"
                                     (ExprApp (ExprVar "+") [
                                         ExprApp (ExprVar "!") [ExprVar "f1"],

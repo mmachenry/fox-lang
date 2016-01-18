@@ -120,9 +120,7 @@ data Expr =
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
     | ExprRepeat Expr Expr
-
-    -- Literal
-    | ExprNum FoxNum
+    | ExprLiteral Value
 
     deriving (Show, Eq)
 

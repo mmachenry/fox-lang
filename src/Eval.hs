@@ -74,5 +74,5 @@ evalExpr ast = case ast of
                            return ValUnit
             v -> throwError $ DynamicError $ "Expected number for repeat" ++ show v
 
-    ExprNum integer -> return $ ValNum integer
+    ExprLiteral val -> return val
 
