@@ -209,7 +209,7 @@ variable :: Parser Expr
 variable = ExprVar <$> identifier
 
 number :: Parser Expr
-number = ExprNum <$> (
+number = ExprLiteral . ValNum <$> (
     Token.whiteSpace lexer
     *> fractional2 False
     <* Token.whiteSpace lexer)
