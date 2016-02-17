@@ -6,51 +6,33 @@ module Ast (
     Expr(..),
     Type(..),
     Effect(..),
-    Identifier,
-    Value(..),
-    FoxError(..),
     FoxNum,
+    FoxValue(..),
     EvalMonad,
     runEval,
-    throwError,
     ) where
 
 import Data.Ratio
-import Control.Monad.Except
-import Control.Monad.State
-import Control.Monad.Reader
 import qualified Data.Map as Map
 import State
+import InterpM
+import Env
+import Exn
 
----------
----- Eval
----------
-type EvalMonad = ReaderT FoxEnv (ExceptT FoxError (StateT (FoxState Value) IO))
-
-type FoxEnv = Map.Map Identifier Value
-emptyEnv = Map.empty
-
-runEval :: EvalMonad a -> IO (Either FoxError a)
-runEval e = do
-    (value, _resultState) <-
-        runStateT (runExceptT (runReaderT e emptyEnv)) emptyState
-    return value
-
----------
--- Other
----------
+type EvalMonad = InterpM (FoxEnv FoxValue) FoxExn (FoxState FoxValue)
+runEval = runInterpM emptyEnv emptyState
 
 type FoxNum = Ratio Integer
 
-data Value =
+data FoxValue =
       ValUnit
     | ValNum FoxNum
     | ValBool Bool
     | ValRef ReferenceId
-    | ValClosure FoxEnv [Parameter] Expr
-    | ValPrimitive String ([Value] -> EvalMonad Value)
+    | ValClosure (FoxEnv FoxValue) [Parameter] Expr
+    | ValPrimitive String ([FoxValue] -> EvalMonad FoxValue)
 
-instance Show Value where
+instance Show FoxValue where
     show ValUnit = "<unit>"
     show (ValNum n) = show n
     show (ValBool b) = show b
@@ -58,23 +40,13 @@ instance Show Value where
     show (ValPrimitive name _) = "<primitive:" ++ name ++ ">"
     show (ValRef _) = "<reference>"
 
-instance Eq Value where
+instance Eq FoxValue where
     (ValNum n1) == (ValNum n2) = n1 == n2
     (ValBool b1) == (ValBool b2) = b1 == b2
     ValClosure{} == ValClosure{} = False
     (ValPrimitive name1 _) == (ValPrimitive name2 _) = name1 == name2
     ValUnit == ValUnit = True
     _ == _ = False
-
-data FoxError =
-      DynamicError String
-    | StaticError String
-    | TypeError String
-    | ParserError String -- consider making this Parsec.ParseError
-    | UserError Value
-    deriving (Eq, Show)
-
-type Identifier = String
 
 data Parameter = Parameter {
     parameterIdentifier :: Identifier,
@@ -120,7 +92,7 @@ data Expr =
     | ExprIfThenElse Expr Expr Expr
     | ExprMatch Expr [(Pattern, Expr)]
     | ExprRepeat Expr Expr
-    | ExprLiteral Value
+    | ExprLiteral FoxValue
 
     deriving (Show, Eq)
 

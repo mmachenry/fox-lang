@@ -1,22 +1,22 @@
 module Eval (evalModule, evalExpr) where
 
 import Ast
+import Exn
 import Primitives
 import State
-import Control.Monad.State
 import Control.Applicative
-import Control.Monad.Reader
 import Control.Monad
 import qualified Data.Map as Map
+import InterpM
 
-evalModule :: Module -> IO (Either FoxError Value)
+evalModule :: Module -> IO (Either FoxExn FoxValue)
 evalModule (Module definitions) = runEval $ local (const moduleEnvironment) $
     evalExpr $ ExprApp (ExprVar "main") []
     where moduleEnvironment = Map.fromList $ map makeClosure definitions
           makeClosure (Definition identifier params body) =
               (identifier, ValClosure moduleEnvironment params body)
  
-evalExpr :: Expr -> EvalMonad Value
+evalExpr :: Expr -> EvalMonad FoxValue
 evalExpr ast = case ast of
     ExprVar i -> do
         env <- ask
