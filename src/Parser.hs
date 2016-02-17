@@ -8,11 +8,11 @@ import Text.ParserCombinators.Parsec.Number (fractional2)
 import qualified Text.Parsec.Token as Token
 import Control.Applicative
 
-readProgramFile :: String -> IO (Either FoxError Module)
+readProgramFile :: String -> IO (Either ParseError Module)
 readProgramFile filename = do
     fileContents <- readFile filename
     return $ case parse (allOf definitions) filename fileContents of
-        Left parseError -> Left $ ParserError (show parseError)
+        Left parseError -> Left $ parseError
         Right m -> Right m
 
 readStr :: Parser a -> String -> Either ParseError a

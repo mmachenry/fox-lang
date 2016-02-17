@@ -3,11 +3,11 @@
 module Primitives where
 
 import Ast
+import Exn
 import State
-import Control.Monad.State
-import Control.Monad.IO.Class
+import InterpM
 
-primitives :: [(String, Value)]
+primitives :: [(String, FoxValue)]
 primitives = [
       ("unit", ValUnit)
     , ("true", ValBool True)
@@ -45,24 +45,24 @@ primitives = [
     , ("ignore", typeWrap1 (const $ pure ()) pure (const ValUnit))
     ]
 
-allocateReference :: Value -> EvalMonad ReferenceId
+allocateReference :: FoxValue -> EvalMonad ReferenceId
 allocateReference val = do
     state <- get
     let (refid, newState) = addReference val state
     put newState
     return refid
 
-getValue :: ReferenceId -> EvalMonad Value
+getValue :: ReferenceId -> EvalMonad FoxValue
 getValue refid = lookupReference refid <$> get
 
-assignValue :: ReferenceId -> Value -> EvalMonad ()
+assignValue :: ReferenceId -> FoxValue -> EvalMonad ()
 assignValue refid val = modify (updateReference refid val)
 
 typeWrap1
     :: (a -> EvalMonad b)
-    -> (Value -> EvalMonad a)
-    -> (b -> Value)
-    -> Value
+    -> (FoxValue -> EvalMonad a)
+    -> (b -> FoxValue)
+    -> FoxValue
 typeWrap1 func extract inject = ValPrimitive "unnamed" $ \case
     [arg1] -> do
         val1 <- extract arg1
@@ -73,10 +73,10 @@ typeWrap1 func extract inject = ValPrimitive "unnamed" $ \case
 liftPrimitive2
     :: String
     -> (a -> b -> c)
-    -> (Value -> EvalMonad a)
-    -> (Value -> EvalMonad b)
-    -> (c -> Value)
-    -> Value
+    -> (FoxValue -> EvalMonad a)
+    -> (FoxValue -> EvalMonad b)
+    -> (c -> FoxValue)
+    -> FoxValue
 liftPrimitive2 name func extract1 extract2 inject = ValPrimitive name $ \case
     [arg1, arg2] -> do
         val1 <- extract1 arg1
@@ -84,27 +84,27 @@ liftPrimitive2 name func extract1 extract2 inject = ValPrimitive name $ \case
         return (inject (func val1 val2))
     _ -> throwError $ DynamicError "Invalid number of argments. Expected one."
 
-fromBool :: Value -> EvalMonad Bool
+fromBool :: FoxValue -> EvalMonad Bool
 fromBool = \case
     ValBool b -> return b
     _ -> throwError $ DynamicError "Expected bool"
 
-fromNum :: Value -> EvalMonad FoxNum
+fromNum :: FoxValue -> EvalMonad FoxNum
 fromNum = \case
     ValNum i -> return i
     _ -> throwError $ DynamicError "Expected num"
 
-fromRef :: Value -> EvalMonad ReferenceId
+fromRef :: FoxValue -> EvalMonad ReferenceId
 fromRef = \case
     ValRef refid -> return refid
     _ -> throwError $ DynamicError "Expected reference"
 
-numericOperator :: String -> (FoxNum -> FoxNum -> FoxNum) -> (String, Value)
+numericOperator :: String -> (FoxNum -> FoxNum -> FoxNum) -> (String, FoxValue)
 numericOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValNum)
 
-booleanOperator :: String -> (Bool -> Bool -> Bool) -> (String, Value)
+booleanOperator :: String -> (Bool -> Bool -> Bool) -> (String, FoxValue)
 booleanOperator name f = (name, liftPrimitive2 name f fromBool fromBool ValBool)
 
-compOperator :: String -> (FoxNum -> FoxNum -> Bool) -> (String, Value)
+compOperator :: String -> (FoxNum -> FoxNum -> Bool) -> (String, FoxValue)
 compOperator name f = (name, liftPrimitive2 name f fromNum fromNum ValBool)
 
