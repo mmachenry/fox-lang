@@ -11,34 +11,36 @@ module State (
 
 import qualified Data.Vector.Persistent as V
 
-type FoxState a = V.Vector (Heap a)
+newtype FoxState a = FoxState (V.Vector (Heap a))
+
 type Heap a = V.Vector a
-type ReferenceId = (Int, Int)
+
+data ReferenceId = ReferenceId Int Int
 
 emptyState :: FoxState a
-emptyState = V.empty
+emptyState = FoxState V.empty
 
 pushHeap :: FoxState a -> FoxState a
-pushHeap state = V.snoc state V.empty
+pushHeap (FoxState state) = FoxState $ V.snoc state V.empty
 
 popHeap :: FoxState a -> FoxState a
-popHeap state = V.take (V.length state - 1) state
+popHeap (FoxState state) = FoxState $ V.take (V.length state - 1) state
 
 addReference :: a -> FoxState a -> (ReferenceId, FoxState a)
-addReference val state =
+addReference val (FoxState state) =
     let topHeapId = V.length state - 1
         topHeap = V.unsafeIndex state topHeapId
         newState = V.update topHeapId (V.snoc topHeap val) state
-    in ((topHeapId, V.length topHeap), newState)
+    in (ReferenceId topHeapId (V.length topHeap), FoxState newState)
 
 updateReference :: ReferenceId -> a -> FoxState a -> FoxState a
-updateReference (heapid, refid) val state =
+updateReference (ReferenceId heapid refid) val (FoxState state) =
     let heap = V.unsafeIndex state heapid
         newHeap = V.update refid val heap
-    in V.update heapid newHeap state
+    in FoxState (V.update heapid newHeap state)
 
 lookupReference :: ReferenceId -> FoxState a -> a
-lookupReference (heapid, refid) state =
+lookupReference (ReferenceId heapid refid) (FoxState state) =
     let heap = V.unsafeIndex state heapid
     in V.unsafeIndex heap refid
 
