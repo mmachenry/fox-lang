@@ -31,7 +31,8 @@ evalExpr ast = case ast of
         case funcVal of
             ValClosure closureEnv params body ->
                 if length params == length args
-                then let newEnv = Map.fromList $ zip (map parameterIdentifier params) argVals
+                then let newEnv = Map.fromList $
+                             zip (map parameterIdentifier params) argVals
                      in local (Map.union (Map.union closureEnv newEnv)) $
                             evalExpr body
                 else throwError $ DynamicError "Mismatch number of parameters."
@@ -52,11 +53,7 @@ evalExpr ast = case ast of
 
     ExprCompound expr1 expr2 -> evalExpr expr1 >> evalExpr expr2
 
-    ExprRun expr -> do
-        modify pushHeap
-        value <- evalExpr expr
-        modify popHeap
-        return value
+    ExprRun expr -> modify pushHeap *> evalExpr expr <* modify popHeap
 
     ExprIfThenElse test consequent alternate -> do
         testValue <- evalExpr test
@@ -72,7 +69,8 @@ evalExpr ast = case ast of
         case numval of
             ValNum n -> do replicateM_ (ceiling n) (evalExpr expr)
                            return ValUnit
-            v -> throwError $ DynamicError $ "Expected number for repeat" ++ show v
+            v -> throwError $ DynamicError $
+                     "Expected number for repeat" ++ show v
 
     ExprLiteral val -> return val
 

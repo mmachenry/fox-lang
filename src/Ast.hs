@@ -19,7 +19,7 @@ import InterpM
 import Env
 import Exn
 
-type EvalMonad = InterpM (FoxEnv FoxValue) FoxExn (FoxState FoxValue)
+type EvalMonad = InterpM (FoxEnv FoxValue) FoxExn (FoxState FoxValue) FoxValue
 runEval = runInterpM emptyEnv emptyState
 
 type FoxNum = Ratio Integer
